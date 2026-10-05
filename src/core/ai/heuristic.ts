@@ -26,7 +26,7 @@ export function writtenDeadline(text: string, nowIso: string): { at: string; tex
   const now = new Date(nowIso);
   const t = text.toLowerCase();
   const dm = t.match(/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)/);
-  if (!dm || !/(go-live|deadline|by|ready|production|instead|moved|forward|before|until)/.test(t)) return null;
+  if (!dm || !/(go-live|deadline|by|ready|production|instead|moved|forward)/.test(t)) return null;
   const d = new Date(Date.UTC(now.getUTCFullYear(), MONTHS.indexOf(dm[2]), Number(dm[1]), 17));
   return { at: d.toISOString(), text: text.substr(dm.index!, dm[0].length) };
 }
@@ -111,9 +111,10 @@ export function combineWithRules(model: EmailSignals, e: Email, nowIso: string):
     return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null, deadlineText: undefined,
       evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
   }
-  // A calendar date written in the email beats a relative phrase the model picked ("confirm by end of day today"
-  // next to "go-live on Thursday 8 October"): the written date is what the sender actually committed to.
-  const written = writtenDeadline(e.body, e.receivedAt);
+  // When the model found a deadline but quoted a relative phrase ("confirm by end of day today") while the email
+  // also writes out a calendar date ("go-live on Thursday 8 October"), the written date is the real commitment.
+  // An email the model reads as having no deadline (an out-of-office "back on 12 October") stays without one.
+  const written = model.deadline ? writtenDeadline(e.body, e.receivedAt) : null;
   const deadline = written?.at ?? model.deadline ?? rules.deadline;
   return { ...model, ticketRefs, deadline, deadlineText: written && deadline === written.at ? written.text : model.deadlineText,
     isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };

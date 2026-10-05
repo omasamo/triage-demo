@@ -122,6 +122,9 @@ test('a date written in the email beats a reply-by phrase the model quoted', asy
   const s = combineWithRules(model, acme, data.now);
   assert.equal(s.deadline, '2026-10-08T17:00:00.000Z');
   assert.equal(s.deadlineText, '8 October');
+  // A date in mail the model reads as deadline-free (out of office until 12 October) is not turned into one.
+  const ooo = { ...acme, subject: 'Automatic reply: Out of office', body: 'I am out of the office until 12 October with no access to email.' };
+  assert.equal(combineWithRules(normalizeSignals({ deadline: { quote: '', english: '' } }, ooo.receivedAt), ooo, data.now).deadline, null);
 });
 
 test('rule safety net quarantines known injections and drops ticket ids the email never mentions', async () => {

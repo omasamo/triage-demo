@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: Synthetic emails to classify (the 25 hold-out emails are always included)
+        description: Synthetic emails to classify (both hold-out sets are always included)
         default: '40'
 jobs:
   bench:

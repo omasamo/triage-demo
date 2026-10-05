@@ -1,5 +1,5 @@
-# Builds the desktop installers. Run it from the Actions tab ("Run workflow"), or push a tag like v0.1.0
-# to also attach the installers to a GitHub release.
+# Builds the desktop installers and attaches them to the GitHub release v<package.json version>.
+# Run it from the Actions tab ("Run workflow") or push a tag like v0.1.0.
 name: Desktop installers
 on:
   workflow_dispatch:
@@ -31,9 +31,17 @@ jobs:
             release/*.dmg
             release/*.exe
           if-no-files-found: error
-      - if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - id: v
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Triage Brain demo v${{ steps.v.outputs.version }}
+          body: |
+            Unsigned demo installers. Mac: right-click the app and choose Open the first time. Windows: More info, then Run anyway.
+            The app runs on the built-in rule engine until a model is installed; see the README for `npm run models:pull` or put the GGUF file in ~/.triage-demo/models.
           files: |
             release/*.dmg
             release/*.exe

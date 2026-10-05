@@ -153,6 +153,7 @@ export interface Handoff {
   itemId: string;
   fromId: string;
   toId: string;
+  crossTeam?: boolean;      // no teammate had room, so the suggestion borrows someone from another team
   reason: string;
   projectedBreachAt: string;
   projectedFinishAfterHandoff: string;

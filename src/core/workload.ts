@@ -45,6 +45,7 @@ export function suggestHandoffs(loads: PersonLoad[], scored: ScoredItem[], now: 
   const extraHours = new Map<string, number>();
   for (const load of loads.filter(l => l.status === 'overloaded')) {
     const mates = loads.filter(l => l.person.teamId === load.person.teamId && l.person.id !== load.person.id);
+    const others = loads.filter(l => l.person.teamId !== load.person.teamId);
     const candidates = load.atRiskItemIds.map(id => byId.get(id)!).sort((a, b) => b.score - a.score);
     // If nothing is at risk yet, still offload the biggest lower-priority item.
     if (!candidates.length) {
@@ -53,14 +54,17 @@ export function suggestHandoffs(loads: PersonLoad[], scored: ScoredItem[], now: 
     }
     for (const s of candidates.slice(0, 2)) {
       const it = s.item;
-      const ranked = mates
+      // Only suggest someone who still has room after taking the item; handing work to a person who is
+      // already past capacity just moves the breach. Same team first, then anyone else with the skill.
+      const rank = (pool: PersonLoad[]) => pool
         .map(m => ({ m, skill: it.skills.filter(k => m.person.skills.includes(k)).length,
           hours: m.queuedHours + (extraHours.get(m.person.id) ?? 0) }))
-        .filter(x => x.skill > 0)
+        .filter(x => x.skill > 0 && x.m.status !== 'overloaded' && (x.hours + it.effortHours) / Math.max(1, x.m.capacityHours) <= 1)
         .sort((a, b) => Number(a.m.person.role === 'Team Lead') - Number(b.m.person.role === 'Team Lead')
-          || a.hours / Math.max(1, a.m.person.capacityHoursPerWeek) - b.hours / Math.max(1, b.m.person.capacityHoursPerWeek) || b.skill - a.skill);
-      const pick = ranked[0];
-      if (!pick || pick.m.status === 'overloaded') continue;
+          || a.hours / Math.max(1, a.m.capacityHours) - b.hours / Math.max(1, b.m.capacityHours) || b.skill - a.skill);
+      const pick = rank(mates)[0] ?? rank(others)[0];
+      if (!pick) continue;
+      const crossTeam = pick.m.person.teamId !== load.person.teamId;
       // Rough projection: the item lands in the teammate's queue ahead of everything with a lower score.
       const ahead = scored.filter(x => x.item.assigneeId === pick.m.person.id && queued(x) && x.score >= s.score)
         .reduce((h, x) => h + x.item.effortHours, 0);
@@ -68,13 +72,17 @@ export function suggestHandoffs(loads: PersonLoad[], scored: ScoredItem[], now: 
       const mineAhead = scored.filter(x => x.item.assigneeId === load.person.id && queued(x) && x.score >= s.score)
         .reduce((h, x) => h + x.item.effortHours, 0);
       const finishNow = now + (mineAhead / PRODUCTIVE_PER_DAY) * 24 * HOUR;
+      if (finishAfter >= finishNow) continue;
       extraHours.set(pick.m.person.id, (extraHours.get(pick.m.person.id) ?? 0) + it.effortHours);
+      const first = (p: PersonLoad) => p.person.name.split(' ')[0];
       out.push({
-        itemId: it.id, fromId: load.person.id, toId: pick.m.person.id,
+        itemId: it.id, fromId: load.person.id, toId: pick.m.person.id, crossTeam,
         projectedBreachAt: new Date(finishNow).toISOString(), projectedFinishAfterHandoff: new Date(finishAfter).toISOString(),
-        reason: `${load.person.name.split(' ')[0]} has ${load.queuedHours} h queued; ${it.externalId} would finish ${fmtHours((finishNow - now) / HOUR)}, `
-          + `due ${fmtHours((dueAt(s) - now) / HOUR)}. ${pick.m.person.name.split(' ')[0]} has ${Math.round(pick.hours)} h queued `
-          + `and knows ${it.skills.filter(k => pick.m.person.skills.includes(k)).join(', ')}.`,
+        reason: `${first(load)} has ${load.queuedHours} h queued; ${it.externalId} would finish ${fmtHours((finishNow - now) / HOUR)}, `
+          + `due ${fmtHours((dueAt(s) - now) / HOUR)}. `
+          + (crossTeam ? `Nobody on ${first(load)}'s team has room. ${pick.m.person.name} from another team` : first(pick.m))
+          + ` has ${Math.round(pick.hours)} h queued and knows ${it.skills.filter(k => pick.m.person.skills.includes(k)).join(', ')}`
+          + (crossTeam ? `; their team lead has to agree.` : '.'),
       });
     }
   }

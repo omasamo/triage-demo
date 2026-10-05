@@ -32,7 +32,7 @@ export function Workload() {
                 <div className="grow">
                   <div className="row" style={{ cursor: 'pointer' }} onClick={() => open(it.id)}>{sc && <BandChip band={sc.band} />}<span className="mono">{it.externalId}</span><span className="ellipsis">{it.title}</span></div>
                   <div className="row small" style={{ marginTop: 6 }}>
-                    <Avatar person={person(h.fromId)} /><span>{person(h.fromId).name}</span><ArrowRight size={14} /><Avatar person={person(h.toId)} /><b>{person(h.toId).name}</b>
+                    <Avatar person={person(h.fromId)} /><span>{person(h.fromId).name}</span><ArrowRight size={14} /><Avatar person={person(h.toId)} /><b>{person(h.toId).name}</b>{h.crossTeam && <Tag color="orange">other team</Tag>}
                   </div>
                   <div className="small muted" style={{ marginTop: 4 }}>{h.reason}</div>
                 </div>
@@ -42,7 +42,7 @@ export function Workload() {
           })}
         </div>
         <div className="card">
-          <div className="card-head"><BellRing size={16} /><h2>Reminders</h2><span className="sub">sent to owners as desktop notifications or a Teams digest</span></div>
+          <div className="card-head"><BellRing size={16} /><h2>Reminders</h2><span className="sub">red ones notify now, the rest wait for a daily digest</span></div>
           <div className="feed" style={{ maxHeight: 420, overflow: 'auto' }}>
             {reminders.slice(0, 30).map(r => (
               <div key={r.id} className="feed-item" onClick={() => r.itemId && open(r.itemId)}>

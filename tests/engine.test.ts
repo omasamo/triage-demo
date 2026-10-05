@@ -159,3 +159,18 @@ test('deadlines the model describes are turned into dates from the day the email
   assert.equal(r('date', { date: '2025-10-30' }), '2026-10-30T17:00:00.000Z');   // wrong year from the model
   assert.equal(resolveDeadline(null, mon), null);
 });
+
+test('hand-offs never push the receiver past their remaining capacity', async () => {
+  const e = await fresh();
+  const s = e.snapshot();
+  assert.ok(s.handoffs.length > 0, 'the demo has overloaded people');
+  const extra = new Map<string, number>();
+  for (const h of s.handoffs) {
+    const load = s.loads.find(l => l.person.id === h.toId)!;
+    const effort = s.items.find(i => i.id === h.itemId)!.effortHours;
+    extra.set(h.toId, (extra.get(h.toId) ?? 0) + effort);
+    assert.notEqual(load.status, 'overloaded');
+    assert.ok(load.queuedHours + extra.get(h.toId)! <= load.capacityHours,
+      `${load.person.name} would get ${load.queuedHours + extra.get(h.toId)!} h against ${load.capacityHours} h left`);
+  }
+});

@@ -13,7 +13,9 @@ export function Overview() {
   const overloaded = s.loads.filter(l => l.status === 'overloaded');
   const person = (id: string) => s.people.find(p => p.id === id);
   const customer = (id: string) => s.customers.find(c => c.id === id);
+  // Only critical reminders interrupt someone; the rest are batched into one digest per person.
   const critical = s.reminders.filter(r => r.severity === 'critical');
+  const digestPeople = new Set(s.reminders.filter(r => r.severity !== 'critical').map(r => r.personId)).size;
 
   return (
     <div className="page">
@@ -47,8 +49,8 @@ export function Overview() {
           <div className="delta">{s.handoffs.length} hand-offs suggested</div>
         </button>
         <button className="card kpi" onClick={() => go('workload')}>
-          <div className="label"><ListChecks size={14} /> Reminders sent</div><div className="value">{s.reminders.length}</div>
-          <div className="delta">{critical.length} critical</div>
+          <div className="label"><ListChecks size={14} /> Urgent nudges</div><div className="value">{critical.length}</div>
+          <div className="delta">{s.reminders.length - critical.length} more wait for {digestPeople} daily digests</div>
         </button>
       </div>
 

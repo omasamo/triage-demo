@@ -46,6 +46,8 @@ const END_OF_MONTH = /\b(end of (?:the |this )?month|last (?:working |business )
 const DAY_AFTER_TOMORROW = /\b(day after tomorrow|ubermorgen|pozitri|pozajtra|pasado manana|apres[- ]demain)\b/;
 const TOMORROW = /\b(tomorrow|tmrw|morgen|zitra|zitrka|zajtra|manana|demain)\b/;
 // Words about the past ("since Monday", "two days ago", "letzte Woche") never name a deadline.
+// "We cannot wait until next week" is a complaint, not a deadline.
+const COMPLAINT = /\b(can ?not|can't|could ?not|couldn't|won't) wait\b|\bnicht (langer |mehr )?warten\b|\bnemuzeme (dele |dal )?cekat\b|\bno podemos esperar\b|\bne pouvons (pas|plus) attendre\b/;
 const PAST = /\b(since|ago|last(?! (?:working |business )?day of)|yesterday|seit|gestern|letzte[nmrs]?|minul[aeyou]{1,2}|vcera|desde|ayer|depuis|hier|derniere?)\b/;
 const TODAY = /\b(today|tonight|this (?:morning|afternoon|evening)|end of (?:the )?(?:business )?day|eod|cob|close of business|heute|dnes|dneska|hoy|aujourd'?hui|ce soir)\b/;
 
@@ -110,7 +112,7 @@ export function parseDeadlinePhrase(phrase: string | null | undefined, sentIso: 
   const sent = new Date(sentIso);
   if (Number.isNaN(sent.getTime())) return null;
   const t = ` ${plain(phrase).replace(/[“”„"«»()]/g, ' ').replace(/\s+/g, ' ')} `;
-  if (PAST.test(t)) return null;
+  if (PAST.test(t) || COMPLAINT.test(t)) return null;
   const at = (day: Date, [h, m]: Clock) => new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, m)).toISOString();
   const plus = (n: number) => new Date(sent.getTime() + n * DAY);
   const iso = (sent.getUTCDay() + 6) % 7;                                 // Monday 0 … Sunday 6

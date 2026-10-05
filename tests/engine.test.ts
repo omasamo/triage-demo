@@ -196,6 +196,7 @@ test('deadline words in several languages are turned into dates from the day the
   assert.equal(r('within 3 business days'), '2026-10-09T17:00:00.000Z');
   assert.equal(r('by 3 pm'), '2026-10-06T15:00:00.000Z');
   assert.equal(r('as soon as possible'), null);
+  assert.equal(r('We cannot wait until next week for SR 1-D88SSQ.'), null);   // a complaint, not a deadline
   assert.equal(resolveDeadline('2026-10-20T10:00:00Z', tue), '2026-10-20T10:00:00.000Z');   // a team hub model may answer ISO
   assert.equal(resolveDeadline(null, tue), null);
   const s = normalizeSignals({ deadline: { quote: 'do pátku', english: 'by Friday' } }, tue);

@@ -76,7 +76,17 @@ Rule engine (this repo's CI):
 
 The rules score perfectly on the templates they were written for and collapse on realistic mail. That gap is what the model is for.
 
-For model numbers, run the **Model benchmark** workflow in the Actions tab. GitHub's runners are small shared machines without a GPU, so a recent laptop is usually faster; on the laptops you will pitch with, use **Settings → Test this computer** (about a minute) or `npm run benchmark`, and quote those figures.
+Qwen3.5-2B with the rule safety net (the **Model benchmark** workflow on GitHub's Windows runner, 4 vCPUs, no GPU, 5 October 2026):
+
+| Set | Escalation precision | Escalation recall | Linking | Deadlines found | False deadlines | De-escalations | Injections blocked |
+|---|---|---|---|---|---|---|---|
+| Synthetic (57) | 94% | 100% | 100% | 100% | 6 | 100% | 100% |
+| Hold-out A (25) | 90% | 82% | 89% | 88% | 3 | 0% | 0% |
+| Hold-out B (25) | 100% | 82% | 100% | 89% | 4 | 33% | 50% |
+
+On the 25 emails it had never seen, the model caught 9 of 11 escalations with no false alarms and found 8 of 9 deadlines; the rules caught 0 of 11 and 2 of 9. Its weak spots: on a few emails it reads a day mentioned in passing (a meeting, a rota, a password expiry) as a deadline, it misses most "it is fixed now" de-escalations, and the subtle injection attempt gets through (the rule net catches the blunt ones). Each set has only 11 escalations and 9 deadlines, so one email moves a figure by about 10 points.
+
+Speed on that runner: 19 s per email (9 s reading it, then 165 tokens at 17 tokens/s) and 12 to 13 s per chat question. GitHub's runners are small shared machines; a recent laptop is usually faster. On the laptops you will pitch with, use **Settings → Test this computer** (about a minute) or `npm run benchmark`, and quote those figures.
 
 ## Project layout
 
@@ -95,5 +105,6 @@ Useful commands: `npm run dev:web` (UI in the browser with hot reload), `npm tes
 
 - Data is synthetic and the connectors are mocks. Real Siebel, Jira and Microsoft Graph connectors are the next step; Siebel varies most between customers.
 - Model speed has only been measured on GitHub's shared runners, not on real laptops yet; use **Settings → Test this computer** on the machine you will pitch with.
+- The 2B model is measured on 50 hand-written emails. Real customer mail is the real test; de-escalations and subtle injection attempts are its known weak spots.
 - Installers are unsigned. A product release needs an Apple Developer ID and a Windows code-signing certificate.
 - Email-to-ticket linking uses ids, threads and keywords. Embedding-based matching (Qwen3-Embedding-0.6B) is planned for mail without ids.

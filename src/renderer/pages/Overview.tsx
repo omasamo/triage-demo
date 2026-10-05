@@ -52,10 +52,11 @@ export function Overview() {
         </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', marginBottom: 16, alignItems: 'start' }}>
+      <div className="split">
         <div className="card">
           <div className="card-head"><h2>Top priorities</h2><span className="sub">ranked across all teams and systems</span><span className="grow" />
             <button className="btn subtle sm" onClick={() => go('queue')}>Full queue <ArrowRight size={12} /></button></div>
+          <div className="table-wrap">
           <table className="table">
             <thead><tr><th></th><th>Item</th><th>Owner</th><th>SLA</th><th>Score</th></tr></thead>
             <tbody>
@@ -64,7 +65,7 @@ export function Overview() {
                 return (
                   <tr key={x.item.id} onClick={() => open(x.item.id)}>
                     <td><BandChip band={x.band} /></td>
-                    <td className="title-cell"><div className="row small"><SourceBadge source={x.item.source} /><span className="mono muted">{x.item.externalId}</span><span className="muted">· {customer(x.item.customerId)?.name}</span></div><div className="ellipsis" style={{ maxWidth: 300 }}>{x.item.title}</div></td>
+                    <td className="title-cell"><div className="row small"><SourceBadge source={x.item.source} /><span className="mono muted">{x.item.externalId}</span><span className="muted">· {customer(x.item.customerId)?.name}</span></div><div className="ellipsis">{x.item.title}</div></td>
                     <td><Avatar person={person(x.item.assigneeId)} /></td>
                     <td><Tag color={sla.cls}>{sla.text}</Tag></td>
                     <td><div className="row"><ScoreBar s={x} width={56} /><b className="small">{x.score}</b></div></td>
@@ -73,6 +74,7 @@ export function Overview() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="card">

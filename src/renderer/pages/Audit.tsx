@@ -18,7 +18,7 @@ export function Audit() {
       <div className="card" style={{ padding: 0 }}>
         {!s.audit.length && <div className="empty">Nothing yet. Let some email arrive with <b>Next email</b>, set a manual priority, or approve a hand-off.</div>}
         {s.audit.length > 0 && (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead><tr><th>Time</th><th>Event</th><th>Item</th><th>Details</th><th>Engine / user</th></tr></thead>
             <tbody>
               {s.audit.map((a, i) => {
@@ -34,7 +34,7 @@ export function Audit() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>

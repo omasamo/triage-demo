@@ -20,7 +20,7 @@ export function Workload() {
         </select>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', marginBottom: 16, alignItems: 'start' }}>
+      <div className="split even">
         <div className="card">
           <div className="card-head"><AlertTriangle size={16} color="var(--warn)" /><h2>Suggested hand-offs</h2><span className="sub">{handoffs.length} suggestions · a manager approves, nothing moves automatically</span></div>
           {!handoffs.length && <div className="empty">No hand-offs needed right now.</div>}

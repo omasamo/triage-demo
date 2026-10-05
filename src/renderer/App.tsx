@@ -62,7 +62,15 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [flash, setFlash] = useState<Set<string>>(new Set());
-  const [collapsed, setCollapsed] = useState(false);
+  // The sidebar folds to icons on narrow windows (and unfolds again when the window grows); the toggle still works.
+  const narrow = '(max-width: 1100px)';
+  const [collapsed, setCollapsed] = useState(() => typeof matchMedia !== 'undefined' && matchMedia(narrow).matches);
+  useEffect(() => {
+    const mq = matchMedia(narrow);
+    const on = () => setCollapsed(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
   const [chatLog, setChatLog] = useState<Ctx['chatLog']>([]);
   const [theme, setTheme] = useState<'light' | 'dark' | null>(() => { try { return localStorage.getItem('theme') as 'light' | 'dark' | null; } catch { return null; } });
   const toastId = useRef(0);
@@ -152,17 +160,17 @@ export function App() {
         <header className="topbar">
           <div className="brand">
             <button className="tb-btn" aria-label="Toggle navigation" onClick={() => setCollapsed(c => !c)}><PanelLeft size={18} /></button>
-            <span className="logo"><Sparkles size={16} /></span>Triage Brain
+            <span className="logo"><Sparkles size={16} /></span><span className="brand-name">Triage Brain</span>
           </div>
           <GlobalSearch />
           <span className="clock" title="Demo clock">{fmtTime(ctx.s.now)} UTC</span>
           <button className="btn primary" style={{ background: '#fff', color: 'var(--brand)', borderColor: '#fff' }} onClick={() => void next()} disabled={busy || !ctx.s.incomingLeft}
             title={ctx.s.nextIncoming ? `Next: ${ctx.s.nextIncoming.fromName}: ${ctx.s.nextIncoming.subject} (shortcut N)` : 'No more demo emails'}>
-            <Mail size={16} /> {busy ? 'Reading email…' : `Next email (${ctx.s.incomingLeft})`}
+            <Mail size={16} /><span className="tb-label">{busy ? 'Reading email…' : `Next email (${ctx.s.incomingLeft})`}</span>
           </button>
           <button className="ai-pill" onClick={() => ctx.go('settings')} title={ai?.message}>
             <span className={`dot ${ai?.mode === 'rules' ? 'rules' : ''}`} />
-            {ai?.mode === 'local-llm' ? `${(ai.emailModel ?? '').replace(/\.gguf$/, '').replace(/^.*?(Qwen)/i, '$1').slice(0, 22)} · ${ai.device ?? 'local'}` : ai?.mode === 'team-hub' ? `Team hub · ${ai.emailModel}` : 'Rule engine'}
+            <span className="tb-label">{ai?.mode === 'local-llm' ? `${(ai.emailModel ?? '').replace(/\.gguf$/, '').replace(/^.*?(Qwen)/i, '$1').slice(0, 22)} · ${ai.device ?? 'local'}` : ai?.mode === 'team-hub' ? `Team hub · ${ai.emailModel}` : 'Rule engine'}</span>
           </button>
           <button className="tb-btn" aria-label="Toggle theme" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
         </header>

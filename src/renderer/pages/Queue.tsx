@@ -30,7 +30,7 @@ export function Queue() {
       </div>
       <div className="card" style={{ padding: 0 }}>
         <div className="row" style={{ padding: 12, borderBottom: '1px solid var(--stroke)', flexWrap: 'wrap' }}>
-          <input className="input" placeholder="Filter by id, title or customer" value={text} onChange={e => setText(e.target.value)} style={{ width: 260 }} />
+          <input className="input" placeholder="Filter by id, title or customer" value={text} onChange={e => setText(e.target.value)} style={{ width: 'min(260px, 100%)' }} />
           <select className="input" value={team} onChange={e => setTeam(e.target.value)} aria-label="Team">
             <option value="all">All teams</option>{s.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
@@ -45,21 +45,21 @@ export function Queue() {
         </div>
         <div style={{ maxHeight: 'calc(100vh - 230px)', overflow: 'auto' }}>
           <table className="table">
-            <thead><tr><th style={{ width: 40 }}>#</th><th>Priority</th><th>Item</th><th>Owner</th><th>Status</th><th>SLA</th><th>Score</th><th>Email signals</th></tr></thead>
+            <thead><tr><th className="opt" style={{ width: 40 }}>#</th><th>Priority</th><th>Item</th><th>Owner</th><th className="opt">Status</th><th>SLA</th><th>Score</th><th className="opt">Email signals</th></tr></thead>
             <tbody>
               {rows.map((x, i) => {
                 const sla = slaText(x.item.slaDueAt, s.now);
                 const ai = x.factors.filter(f => ['escalation', 'deadline', 'executive', 'deescalation'].includes(f.key));
                 return (
                   <tr key={x.item.id} onClick={() => open(x.item.id)} className={flash.has(x.item.id) ? 'flash' : ''}>
-                    <td className="muted small">{i + 1}</td>
+                    <td className="muted small opt">{i + 1}</td>
                     <td><div className="row" style={{ gap: 4 }}><BandChip band={x.band} />{x.override && <span title={`Set by ${x.override.by}: ${x.override.reason}`}><Pin size={13} color="var(--brand)" /></span>}</div></td>
-                    <td className="title-cell"><div className="row small"><SourceBadge source={x.item.source} /><span className="mono muted">{x.item.externalId}</span><span className="muted">· {customer(x.item.customerId)?.name}</span><Tier c={customer(x.item.customerId)} /></div><div className="ellipsis" style={{ maxWidth: 420 }}>{x.item.title}</div></td>
+                    <td className="title-cell"><div className="row small"><SourceBadge source={x.item.source} /><span className="mono muted">{x.item.externalId}</span><span className="muted">· {customer(x.item.customerId)?.name}</span><Tier c={customer(x.item.customerId)} /></div><div className="ellipsis">{x.item.title}</div></td>
                     <td><div className="row small"><Avatar person={person(x.item.assigneeId)} /><span className="nowrap">{person(x.item.assigneeId)?.name.split(' ')[0]}</span></div></td>
-                    <td className="small nowrap">{x.item.status}</td>
+                    <td className="small nowrap opt">{x.item.status}</td>
                     <td><Tag color={sla.cls}>{sla.text}</Tag></td>
                     <td><div className="row"><ScoreBar s={x} /><b className="small">{x.score}</b></div></td>
-                    <td><div className="row" style={{ gap: 4 }}>{ai.slice(0, 2).map(f => <Tag key={f.key} color={f.key === 'deescalation' ? 'green' : 'purple'} title={f.detail}><Sparkles size={10} />{SHORT[f.key]}</Tag>)}</div></td>
+                    <td className="opt"><div className="row" style={{ gap: 4 }}>{ai.slice(0, 2).map(f => <Tag key={f.key} color={f.key === 'deescalation' ? 'green' : 'purple'} title={f.detail}><Sparkles size={10} />{SHORT[f.key]}</Tag>)}</div></td>
                   </tr>
                 );
               })}

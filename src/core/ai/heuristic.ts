@@ -115,11 +115,13 @@ export function combineWithRules(model: EmailSignals, e: Email, nowIso: string):
       evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
   }
   // A deadline counts only when the words the model quoted are really in the email (not copied from its instructions)
-  // and the mail carries some urgency: a newsletter's "Friday" or a meeting's "tomorrow" is a mention, not an ask.
+  // and the mail asks for something: a newsletter's "Friday" or a meeting's "tomorrow" is a mention, not an ask.
+  // The 2B model often leaves urgency at "none" even on an escalation, so any of the three signals is enough.
   // Auto-replies never escalate and their dates ("back on 12 October") are not deadlines.
   const autoReply = AUTO_REPLY.test(e.subject);
   const quoted = !model.deadlineText || plainText(`${e.subject}\n${e.body}`).includes(plainText(model.deadlineText));
-  const fromModel = !autoReply && quoted && model.urgency !== 'none' ? model.deadline : null;
+  const asks = model.isEscalation || model.urgency !== 'none' || model.customerImpact !== 'none';
+  const fromModel = !autoReply && quoted && asks ? model.deadline : null;
   // When the model quoted a relative phrase ("confirm by end of day today") while the email also writes out a
   // calendar date ("go-live on Thursday 8 October"), the written date is the real commitment.
   const written = fromModel ? writtenDeadline(e.body, e.receivedAt) : null;

@@ -135,7 +135,8 @@ test('a quoted deadline must come from the email itself, on mail with some urgen
   assert.equal(combineWithRules(mention, e, data.now).deadline, null);                 // a mention, not an ask
   const copied = normalizeSignals({ urgency: 'high', isEscalation: true, deadline: { quote: 'entro venerdì', english: 'by Friday' } }, e.receivedAt);
   assert.equal(combineWithRules(copied, e, data.now).deadline, null);                  // words the email never says
-  const real = normalizeSignals({ urgency: 'high', isEscalation: true, deadline: { quote: 'do PÁTKU', english: 'by Friday' } }, e.receivedAt);
+  // The model often leaves urgency at "none" on an escalation; the escalation flag alone keeps the deadline.
+  const real = normalizeSignals({ urgency: 'none', isEscalation: true, deadline: { quote: 'do PÁTKU', english: 'by Friday' } }, e.receivedAt);
   const got = combineWithRules(real, { ...e, body: 'Prosíme o vyřešení do pátku.' }, data.now);
   assert.equal(got.deadline, '2026-10-09T17:00:00.000Z');
   assert.equal(got.deadlineText, 'do PÁTKU');

@@ -11,9 +11,12 @@ import { DEFAULT_WEIGHTS, fmtHours, scoreAll } from './scoring.ts';
 import { computeLoads, suggestHandoffs } from './workload.ts';
 import { heuristicSignals } from './ai/heuristic.ts';
 
+/** A provider may report how long the model took, e.g. when the email was read ahead in the background. */
+export type TimedSignals = { signals: EmailSignals; latencyMs: number };
+
 export interface AiProvider {
   readonly name: string;
-  extract(email: Email, nowIso: string): Promise<EmailSignals>;
+  extract(email: Email, nowIso: string): Promise<EmailSignals | TimedSignals>;
 }
 
 export const heuristicProvider: AiProvider = {
@@ -82,8 +85,10 @@ export class Engine {
   private async processEmail(e: Email, pre: { signals: EmailSignals; engine: string; latencyMs: number } | undefined,
     provider: AiProvider, live: boolean): Promise<ProcessedEmail> {
     const t0 = performance.now();
-    const signals = pre?.signals ?? await provider.extract(e, new Date(this.now).toISOString());
-    const latencyMs = pre?.latencyMs ?? Math.round(performance.now() - t0);
+    const r = pre ? undefined : await provider.extract(e, new Date(this.now).toISOString());
+    const timed = r && 'latencyMs' in r ? r : undefined;
+    const signals = pre?.signals ?? timed?.signals ?? (r as EmailSignals);
+    const latencyMs = pre?.latencyMs ?? timed?.latencyMs ?? Math.round(performance.now() - t0);
     // Suspicious emails are never linked, so they cannot move any ticket.
     const link = signals.suspiciousInstructions ? { itemId: null, method: 'none' as const, confidence: 0 } : this.linker.link(e, signals.ticketRefs);
     this.linker.learn(e, link);

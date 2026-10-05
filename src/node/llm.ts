@@ -27,7 +27,8 @@ import { type AiConfig, loadConfig, modelsDir } from './config.ts';
 
 export interface AiBackend {
   provider(): AiProvider;
-  extract(e: Email, nowIso: string): Promise<{ signals: EmailSignals; tokens: number; ms: number; raw?: string }>;
+  /** promptMs: time until the first generated token (reading the prompt); the rest of ms is generation. */
+  extract(e: Email, nowIso: string): Promise<{ signals: EmailSignals; tokens: number; ms: number; promptMs?: number; raw?: string }>;
   answer(question: string, history: ChatTurn[], snap: Snapshot): Promise<ChatAnswer>;
   status(): Promise<AiStatus>;
   warmup(): Promise<void>;
@@ -68,7 +69,7 @@ export class LocalModels implements AiBackend {
       try { return await resolveModelFile(uri, { directory: this.dir, download: false }); } catch { return undefined; }
     };
     this.files = { small: await find(this.config.models.small), large: await find(this.config.models.large) };
-    if (!this.available) { this.state = 'no-model'; this.message = `No model in ${this.dir}. Run "npm run models:pull". Using the rule engine.`; }
+    if (!this.available) { this.state = 'no-model'; this.message = 'No local model installed yet, so the rule engine is running. Download the model in Settings.'; }
     return this.available;
   }
 
@@ -133,11 +134,13 @@ export class LocalModels implements AiBackend {
       const { session } = await this.context('email');
       session.setChatHistory([{ type: 'system', text: emailSystemPrompt(nowIso) }]);
       const t0 = performance.now();
-      let tokens = 0;
+      let tokens = 0, firstAt = 0;
       const out = await session.prompt(emailUserPrompt(e), {
-        grammar: this.grammars.email!, maxTokens: 400, temperature: 0, budgets: { thoughtTokens: 0 }, onToken: t => { tokens += t.length; },
+        grammar: this.grammars.email!, maxTokens: 400, temperature: 0, budgets: { thoughtTokens: 0 },
+        onToken: t => { firstAt ||= performance.now(); tokens += t.length; },
       });
-      return { signals: combineWithRules(normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), e, nowIso), tokens, ms: performance.now() - t0, raw: out };
+      return { signals: combineWithRules(normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), e, nowIso), tokens,
+        ms: performance.now() - t0, promptMs: firstAt ? firstAt - t0 : undefined, raw: out };
     });
   }
 
@@ -164,6 +167,15 @@ export class LocalModels implements AiBackend {
         write: (system, user) => run(system, user, { maxTokens: 90, temperature: 0, budgets: { thoughtTokens: 0 } }),
       });
     });
+  }
+
+  /** Diagnostics for the benchmark: where the model runs and whether llama.cpp can reuse the cached prompt prefix. */
+  async info() {
+    const file = this.emailFile();
+    if (!file) return undefined;
+    const [llama, model] = await Promise.all([this.llama(), this.loadModel(file)]);
+    const fi = model.fileInsights as { isHybrid?: boolean; isRecurrent?: boolean };
+    return { gpu: llama.gpu || 'CPU', hybridOrRecurrent: !!(fi.isHybrid || fi.isRecurrent), threads: this.ctx.email?.context.currentThreads };
   }
 
   async status(): Promise<AiStatus> {

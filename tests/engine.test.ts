@@ -120,3 +120,23 @@ test('rule safety net quarantines known injections and drops ticket ids the emai
   assert.equal(s.isEscalation, false);
   assert.deepEqual(s.ticketRefs, ['OPS-1100']);
 });
+
+test('emails read ahead are not read twice and keep the model time', async () => {
+  const { readAheadProvider } = await import('../src/node/readahead.ts');
+  const { heuristicSignals } = await import('../src/core/ai/heuristic.ts');
+  const calls: string[] = [];
+  const fake = {
+    available: true, provider: () => ({ name: 'Local test model', extract: async () => { throw new Error('unused'); } }),
+    extract: async (e: Dataset['incoming'][number], now: string) => { calls.push(e.id); return { signals: heuristicSignals(e, now), tokens: 100, ms: 4200 }; },
+  } as never;
+  const reader = readAheadProvider(fake, data.incoming, data.now);
+  await reader.readAhead(data.incoming.length);
+  assert.deepEqual(calls, data.incoming.slice(0, 3).map(e => e.id));
+  const engine = new Engine(data, reader);
+  await engine.ingestHistory();
+  engine.ai = reader;
+  const r = await engine.receiveNext();
+  assert.equal(r?.processed.latencyMs, 4200);
+  assert.equal(r?.processed.engine, 'Local test model');
+  assert.equal(calls.length, 3);
+});

@@ -13,7 +13,7 @@ import type { Dataset, Email, EmailSignals, EmailTruth } from '../src/core/types
 import { heuristicSignals } from '../src/core/ai/heuristic.ts';
 import { Linker } from '../src/core/linker.ts';
 import { Engine } from '../src/core/engine.ts';
-import { createBackend } from '../src/node/llm.ts';
+import { createBackend, LocalModels } from '../src/node/llm.ts';
 import { hardwareInfo, loadConfig } from '../src/node/config.ts';
 
 const args = process.argv.slice(2);
@@ -39,17 +39,18 @@ const sample: Email[] = [...interesting, ...routine.filter((_, i) => i % Math.ma
 
 const failures: string[] = [];
 let rawShown = 0;
-type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; linked: string | null };
+type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; promptMs: number; linked: string | null };
 async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: string): Promise<Row[]> {
   const linker = new Linker(data.items, data.customers);
   const rows: Row[] = [];
   for (const [i, e] of [...emails].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)).entries()) {
     const t = truthOf.get(e.id)!;
-    let s: EmailSignals, ms: number, tokens = 0;
+    let s: EmailSignals, ms: number, tokens = 0, promptMs = 0;
     if (useModel) {
       try {
         const r = await backend!.extract(e, data.now);
         ({ signals: s, ms, tokens } = r);
+        promptMs = r.promptMs ?? 0;
         if (rawShown++ < 2) console.log(`  raw model output for ${e.id}: ${JSON.stringify(r.raw ?? '').slice(0, 400)}`);
       }
       catch (err) {
@@ -61,7 +62,7 @@ async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: str
     else { const a = performance.now(); s = heuristicSignals(e, data.now); ms = performance.now() - a; }
     const link = s.suspiciousInstructions ? { itemId: null, method: 'none' as const, confidence: 0 } : linker.link(e, s.ticketRefs);
     linker.learn(e, link);
-    rows.push({ e, t, s, ms, tokens, linked: link.itemId });
+    rows.push({ e, t, s, ms, tokens, promptMs, linked: link.itemId });
     if (useModel && (i + 1) % 10 === 0) console.log(`  ${label}: ${i + 1}/${emails.length} emails, ${(ms / 1000).toFixed(1)} s for the last one`);
   }
   return rows;
@@ -103,6 +104,8 @@ const totalMs = performance.now() - t0;
 const allRows = [...synthRows, ...holdRows];
 const tokens = allRows.reduce((a, r) => a + r.tokens, 0);
 const genMs = allRows.reduce((a, r) => a + r.ms, 0);
+const promptMs = allRows.reduce((a, r) => a + r.promptMs, 0);
+const info = backend instanceof LocalModels ? await backend.info() : undefined;
 
 // ---- chat latency ----
 const chat: { q: string; ms: number; tool: string; answer: string }[] = [];
@@ -125,7 +128,15 @@ const result = {
   schemaFailures: failures.length,
   synthetic: metrics(synthRows),
   holdout: metrics(holdRows),
-  speed: { secondsPerEmail: Math.round(genMs / allRows.length / 10) / 100, tokensPerSecond: tokens ? Math.round(tokens / (genMs / 1000)) : undefined, totalSeconds: Math.round(totalMs / 100) / 10 },
+  speed: {
+    secondsPerEmail: Math.round(genMs / allRows.length / 10) / 100,
+    // Reading the prompt (time to first token) versus writing the answer, per email.
+    promptSecondsPerEmail: promptMs ? Math.round(promptMs / allRows.length / 10) / 100 : undefined,
+    tokensPerEmail: tokens ? Math.round(tokens / allRows.length) : undefined,
+    tokensPerSecond: tokens ? Math.round(tokens / ((genMs - promptMs) / 1000)) : undefined,
+    totalSeconds: Math.round(totalMs / 100) / 10,
+  },
+  runtime: info,
   chat,
 };
 
@@ -138,7 +149,8 @@ const row = (m: ReturnType<typeof metrics>) => ({
 });
 console.table({ [`Synthetic set (${result.synthetic.emails})`]: row(result.synthetic), [`Hold-out set (${result.holdout.emails})`]: row(result.holdout) });
 if (failures.length) console.log(`Model output could not be parsed for ${failures.length} emails (rule engine used for those).`);
-console.log(`Speed: ${result.speed.secondsPerEmail} s per email${result.speed.tokensPerSecond ? `, ${result.speed.tokensPerSecond} tokens/s` : ''}`);
+console.log(`Speed: ${result.speed.secondsPerEmail} s per email${result.speed.promptSecondsPerEmail !== undefined ? ` (${result.speed.promptSecondsPerEmail} s reading the prompt, then ${result.speed.tokensPerEmail} tokens at ${result.speed.tokensPerSecond} tokens/s)` : ''}`);
+if (info) console.log(`Runtime: ${info.gpu}, ${info.threads ?? '?'} threads, ${info.hybridOrRecurrent ? 'hybrid/recurrent model (prompt prefix needs checkpoints to be reused)' : 'attention model (prompt prefix is reused)'}`);
 for (const c of chat) console.log(`Chat "${c.q}" → ${(c.ms / 1000).toFixed(1)} s via ${c.tool}\n   ${c.answer.replace(/\n/g, ' ')}`);
 if (result.holdout.mistakes.length) console.log(`\nHold-out mistakes:\n${result.holdout.mistakes.map(m => `  ${m}`).join('\n')}`);
 mkdirSync('bench-results', { recursive: true });
@@ -151,7 +163,7 @@ writeFileSync(file.replace(/\.json$/, '.md'), [
   '|---|---|---|---|---|---|---|',
   `| Synthetic (${result.synthetic.emails}) | ${md(result.synthetic)} |`,
   `| Hold-out (${result.holdout.emails}) | ${md(result.holdout)} |`, '',
-  `Speed: **${result.speed.secondsPerEmail} s per email**${result.speed.tokensPerSecond ? `, ${result.speed.tokensPerSecond} tokens/s` : ''}.`,
+  `Speed: **${result.speed.secondsPerEmail} s per email**${result.speed.promptSecondsPerEmail !== undefined ? ` (${result.speed.promptSecondsPerEmail} s reading the prompt, then ${result.speed.tokensPerEmail} tokens at ${result.speed.tokensPerSecond} tokens/s)` : ''}.`,
   ...chat.map(c => `- Chat "${c.q}": ${(c.ms / 1000).toFixed(1)} s via \`${c.tool}\`. ${c.answer.replace(/\n/g, ' ')}`),
 ].join('\n') + '\n');
 console.log(`\nSaved ${file}`);

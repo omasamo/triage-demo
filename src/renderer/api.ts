@@ -4,6 +4,13 @@ import { LocalApi } from '../core/api.ts';
 import type { Dataset } from '../core/types.ts';
 import type { AiConfig } from '../node/config.ts';
 
+export interface SpeedResult {
+  error?: string;
+  model?: string; device?: string; emails?: number;
+  hardware?: DesktopSettings['hardware'];
+  secondsPerEmail?: number; emailsPerHour?: number; tokensPerSecond?: number; chatSeconds?: number;
+}
+
 export interface DesktopSettings {
   config: AiConfig;
   hardware: { ramGb: number; cpu: string; cores: number; platform: string; recommendedChat: 'small' | 'large' };
@@ -35,10 +42,11 @@ class IpcApi implements TriageApi {
   saveSettings = (c: AiConfig) => this.c<DesktopSettings>('saveSettings', c);
   reanalyse = () => this.c<{ done: number; error?: string }>('reanalyse');
   downloadModels = (which: ('small' | 'large')[]) => this.c<{ ok: boolean }>('downloadModels', which);
+  speedTest = () => this.c<SpeedResult>('speedTest');
   on = (ch: string, cb: (p: unknown) => void) => this.b.on(ch, cb);
 }
 
-export type ClientApi = TriageApi & Partial<Pick<IpcApi, 'settings' | 'saveSettings' | 'reanalyse' | 'downloadModels' | 'on'>>;
+export type ClientApi = TriageApi & Partial<Pick<IpcApi, 'settings' | 'saveSettings' | 'reanalyse' | 'downloadModels' | 'speedTest' | 'on'>>;
 
 export async function createApi(): Promise<ClientApi> {
   if (window.triage) return new IpcApi(window.triage);

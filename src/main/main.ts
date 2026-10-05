@@ -4,8 +4,10 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dataset from '../../data/dataset.json' with { type: 'json' };
-import type { Dataset } from '../core/types.ts';
+import holdout from '../../data/holdout.json' with { type: 'json' };
+import type { Dataset, Email } from '../core/types.ts';
 import { Engine, heuristicProvider } from '../core/engine.ts';
+import { readAheadProvider, type ReadAheadProvider } from '../node/readahead.ts';
 import { LocalApi } from '../core/api.ts';
 import { answerWithoutModel } from '../core/chat.ts';
 import { createBackend, LocalModels, type AiBackend } from '../node/llm.ts';
@@ -19,13 +21,16 @@ let backend: AiBackend = createBackend(config);
 const store = openStore(path.join(app.getPath('userData'), 'triage.db'));
 let win: BrowserWindow | null = null;
 
+let reader: ReadAheadProvider | null = null;
+const readAhead = async () => { if (reader) await reader.readAhead((await api.getEngine()).snapshot().incomingLeft); };
+
 const api = new LocalApi(data, {
   makeEngine: async d => {
     const engine = new Engine(d, heuristicProvider);
     // Reuse signals from earlier model runs; everything else is analysed by the rule engine at start-up.
     await engine.ingestHistory(store.cachedSignals());
     for (const o of store.overrides()) engine.overrides.set(o.itemId, o);
-    if (backend.available) engine.ai = backend.provider();
+    if (reader) engine.ai = reader;
     return engine;
   },
   chatFn: async (q, history, snap) => backend.available ? backend.answer(q, history, snap).catch(() => answerWithoutModel(q, snap)) : answerWithoutModel(q, snap),
@@ -39,23 +44,53 @@ const api = new LocalApi(data, {
 
 async function startAi() {
   await backend.warmup();
-  if (backend.available) (await api.getEngine()).ai = backend.provider();
+  if (backend.available) {
+    reader = readAheadProvider(backend, data.incoming, data.now);
+    (await api.getEngine()).ai = reader;
+  }
   win?.webContents.send('ai-status', await backend.status());
+  void readAhead();
+}
+
+/** Stops background reading before the backend is replaced or disposed. */
+function stopAi() { reader?.stop(); reader = null; }
+
+/** "Test this computer" in Settings: six hold-out emails in four languages plus one chat question. */
+const SPEED_SAMPLE = ['h-001', 'h-002', 'h-003', 'h-005', 'h-013', 'h-018'];
+async function speedTest() {
+  if (!backend.available) return { error: 'No model is running. Download Qwen3.5-2B first.' };
+  const emails = (holdout as unknown as { emails: Email[] }).emails.filter(e => SPEED_SAMPLE.includes(e.id));
+  const runs: { ms: number; tokens: number; promptMs?: number }[] = [];
+  for (const e of emails) {
+    runs.push(await backend.extract(e, data.now));
+    win?.webContents.send('speedtest-progress', { done: runs.length, total: emails.length + 1 });
+  }
+  const chat = await backend.answer('What is blocking the Acme go-live?', [], (await api.getEngine()).snapshot());
+  const ms = runs.reduce((a, r) => a + r.ms, 0) / runs.length;
+  const genMs = runs.reduce((a, r) => a + r.ms - (r.promptMs ?? 0), 0);
+  const tokens = runs.reduce((a, r) => a + r.tokens, 0);
+  const st = await backend.status();
+  return {
+    model: st.emailModel, device: st.device, hardware: hardwareInfo(), emails: runs.length,
+    secondsPerEmail: Math.round(ms / 100) / 10, emailsPerHour: Math.round(3600_000 / ms),
+    tokensPerSecond: tokens && genMs ? Math.round(tokens / (genMs / 1000)) : undefined,
+    chatSeconds: Math.round((chat.latencyMs ?? 0) / 100) / 10,
+  };
 }
 
 const methods = {
   snapshot: () => api.snapshot(),
-  next: () => api.next(),
+  next: async () => { const r = await api.next(); void readAhead(); return r; },
   setWeights: (w: never) => api.setWeights(w),
   applyHandoff: (itemId: string, toId: string) => api.applyHandoff(itemId, toId),
   setOverride: (itemId: string, band: never, reason: string) => api.setOverride(itemId, band, reason),
   chat: (q: string, h: never) => api.chat(q, h),
   aiStatus: () => api.aiStatus(),
-  reset: () => api.reset(),
+  reset: async () => { const s = await api.reset(); void readAhead(); return s; },
   settings: async () => ({ config, hardware: hardwareInfo(), modelsDir: modelsDir(), store: store.kind }),
   saveSettings: async (c: AiConfig) => {
     config = c; saveConfig(c);
-    await backend.dispose(); backend = createBackend(config);
+    stopAi(); await backend.dispose(); backend = createBackend(config);
     const engine = await api.getEngine(); engine.ai = heuristicProvider;
     void startAi();
     return { config, hardware: hardwareInfo(), modelsDir: modelsDir(), store: store.kind };
@@ -78,10 +113,11 @@ const methods = {
     const local = backend instanceof LocalModels ? backend : new LocalModels(config);
     let last = 0;
     await local.pull(which, p => { if (Date.now() - last > 400) { last = Date.now(); win?.webContents.send('download-progress', p); } });
-    await backend.dispose(); backend = createBackend(config);
+    stopAi(); await backend.dispose(); backend = createBackend(config);
     void startAi();
     return { ok: true };
   },
+  speedTest,
   openExternal: (url: string) => { if (/^https:\/\//.test(url)) void shell.openExternal(url); },
 } as const;
 

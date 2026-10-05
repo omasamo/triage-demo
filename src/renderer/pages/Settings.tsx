@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Cpu, Server, ShieldCheck, SlidersHorizontal, Plug, RefreshCw } from 'lucide-react';
+import { Cpu, Gauge, ShieldCheck, SlidersHorizontal, Plug, RefreshCw, Copy } from 'lucide-react';
 import { useApp } from '../App.tsx';
-import type { DesktopSettings } from '../api.ts';
+import type { DesktopSettings, SpeedResult } from '../api.ts';
 import type { AiConfig } from '../../node/config.ts';
 import type { Weights } from '../../core/types.ts';
 import { FACTOR_LABELS, DEFAULT_WEIGHTS } from '../../core/scoring.ts';
@@ -22,6 +22,17 @@ export function Settings() {
     catch (e) { setDl(`Download failed: ${(e as Error).message}`); }
   };
   useEffect(() => api.on?.('reanalyse-progress', p => { const x = p as { done: number; total: number }; setProgress(`${x.done} / ${x.total}`); }), [api]);
+  const [speed, setSpeed] = useState<SpeedResult | null>(null);
+  const [testing, setTesting] = useState('');
+  useEffect(() => api.on?.('speedtest-progress', p => { const x = p as { done: number; total: number }; setTesting(`Step ${x.done} of ${x.total}…`); }), [api]);
+  const runSpeedTest = async () => {
+    if (!api.speedTest) return;
+    setSpeed(null); setTesting('Starting…');
+    try { setSpeed(await api.speedTest()); } catch (e) { setSpeed({ error: (e as Error).message }); }
+    setTesting('');
+  };
+  const speedText = (r: SpeedResult) => `Triage Brain speed test: ${r.model} on ${r.device}; ${r.hardware?.platform}, ${r.hardware?.cpu}, ${r.hardware?.ramGb} GB RAM. `
+    + `${r.secondsPerEmail} s per email (${r.emailsPerHour} emails per hour)${r.tokensPerSecond ? `, ${r.tokensPerSecond} tokens/s` : ''}; chat answer ${r.chatSeconds} s.`;
 
   const save = async () => {
     if (!draft || !api.saveSettings) return;
@@ -104,6 +115,31 @@ export function Settings() {
             </div>
           )}
         </div>
+
+        {ds && api.speedTest && (
+          <div className="card">
+            <div className="card-head"><Gauge size={16} /><h2>Test this computer</h2></div>
+            <div className="small muted" style={{ marginBottom: 12 }}>Reads six sample emails (English, German, Czech and Spanish) and answers one chat question with the installed model, to show how fast this machine runs it. Takes from a few seconds to a few minutes, depending on the machine.</div>
+            <div className="row">
+              <button className="btn primary" disabled={!!testing || ai?.mode === 'rules'} onClick={() => void runSpeedTest()}><Gauge size={14} /> Run speed test</button>
+              <span className="small muted">{ai?.mode === 'rules' ? 'Install or connect a model first.' : testing}</span>
+            </div>
+            {speed?.error && <div className="banner danger small" style={{ marginTop: 12 }}>{speed.error}</div>}
+            {speed && !speed.error && (
+              <div className="col" style={{ gap: 10, marginTop: 12 }}>
+                <div className="signal-grid">
+                  <div className="signal"><div className="k">Per email</div><div className="v">{speed.secondsPerEmail} s</div></div>
+                  <div className="signal"><div className="k">Emails per hour</div><div className="v">{speed.emailsPerHour?.toLocaleString('en-US')}</div></div>
+                  <div className="signal"><div className="k">Chat answer</div><div className="v">{speed.chatSeconds} s</div></div>
+                  {speed.tokensPerSecond !== undefined && <div className="signal"><div className="k">Generation</div><div className="v">{speed.tokensPerSecond} tokens/s</div></div>}
+                  <div className="signal"><div className="k">Runs on</div><div className="v">{speed.device}</div></div>
+                </div>
+                <div className="row"><button className="btn sm" onClick={() => void navigator.clipboard.writeText(speedText(speed))}><Copy size={12} /> Copy result</button>
+                  <span className="small muted">{speed.hardware?.cpu}, {speed.hardware?.ramGb} GB RAM</span></div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="card">
           <div className="card-head"><SlidersHorizontal size={16} /><h2>Scoring weights</h2><span className="grow" />

@@ -18,7 +18,6 @@
     "dist:win": "npm run build && electron-builder --win",
     "models:pull": "tsx scripts/pull-models.ts",
     "benchmark": "tsx scripts/benchmark.ts",
-    "eval": "tsx scripts/eval.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "tsx --test tests/*.test.ts",
     "smoke:electron": "npm run build && electron . --smoke",

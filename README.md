@@ -40,10 +40,10 @@ Outlook─┘      │              │             ├─ Workload: queue proje
 
 - **Normalized model.** Every source becomes a `WorkItem` (`src/core/types.ts`). The mock connectors feed the same interface real ones will.
 - **Linking** (`src/core/linker.ts`): ticket ids first (`1-XXXXXX`, `OPS-1234`), then the email thread, then customer domain plus keywords.
-- **AI signals** (`src/node/llm.ts`, `src/core/ai/schema.ts`): the model fills a fixed JSON schema (escalation, urgency, deadline, impact, sentiment, executive involvement, a verbatim evidence quote). A grammar forces valid output, and the model has no way to act on what an email says.
+- **AI signals** (`src/node/llm.ts`, `src/core/ai/schema.ts`): the model fills a fixed JSON schema (escalation, urgency, deadline, impact, sentiment, executive involvement, a verbatim evidence quote). A grammar forces valid output, and the model has no way to act on what an email says. A rule safety net (`combineWithRules` in `src/core/ai/heuristic.ts`) runs on every answer: known injection patterns always quarantine the email, ticket ids must literally appear in the email, and a deadline or de-escalation the rules find is kept if the model missed it.
 - **Explainable score** (`src/core/scoring.ts`): severity, SLA, customer tier, email signals, blockers, staleness, and manager overrides, each a named factor with a tunable weight. Urgency from an escalated ticket flows to whatever blocks it.
 - **Workload** (`src/core/workload.ts`): each queue is played forward in score order at about 6 productive hours a day; items that would finish after their due time are "at risk", which drives hand-off suggestions.
-- **Chat, tool-first** (`src/core/ai/chatPlan.ts`): the small model only picks one read-only query as JSON, the app runs it, and the model phrases the answer from that data. This keeps a 2B model reliable.
+- **Chat, tool-first** (`src/core/chat.ts`, `src/core/ai/chatPlan.ts`): the small model only picks one read-only query as JSON, the app runs it and writes the facts (ticket ids, owners, load, SLA) itself, and the model adds a one- or two-sentence answer on top. That sentence is dropped if it names a ticket, person, customer or number that is not in the facts, so a 2B model cannot invent tickets.
 - **Storage**: SQLite (`node:sqlite`) in the app-data folder holds AI results, overrides and the audit trail.
 
 ### AI engine options

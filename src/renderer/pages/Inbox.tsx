@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ShieldAlert, Sparkles, Link2, Timer } from 'lucide-react';
 import { useApp } from '../App.tsx';
 import type { ProcessedEmail } from '../../core/types.ts';
 import { BandChip, SourceBadge, Tag, fmtDate, rel } from '../components/ui.tsx';
+import { pressable } from '../components/insight.tsx';
 
 const isSignal = (p: ProcessedEmail) => p.signals.isEscalation || p.signals.isDeescalation || p.signals.suspiciousInstructions || !!p.signals.deadline;
 
@@ -12,7 +13,18 @@ export function Inbox() {
   const list = useMemo(() => s.processed.filter(p => filter === 'all' || (filter === 'signals' ? isSignal(p) : !!p.link.itemId)), [s, filter]);
   const [sel, setSel] = useState<string | null>(routeOpts.emailId ?? list[0]?.email.id ?? null);
   useEffect(() => { if (!sel && list[0]) setSel(list[0].email.id); }, [list, sel]);
-  useEffect(() => { if (s.processed[0] && filter === 'signals' && isSignal(s.processed[0])) setSel(s.processed[0].email.id); }, [s.processed.length]);
+  // A deep link (from "Read the email") wins over jumping to the newest signal.
+  const deepLinked = useRef(!!routeOpts.emailId);
+  useEffect(() => {
+    if (!routeOpts.emailId) return;
+    setSel(routeOpts.emailId);
+    const m = s.processed.find(x => x.email.id === routeOpts.emailId);
+    if (m && !isSignal(m)) setFilter('all');
+  }, [routeOpts]);
+  useEffect(() => {
+    if (deepLinked.current) { deepLinked.current = false; return; }
+    if (s.processed[0] && filter === 'signals' && isSignal(s.processed[0])) setSel(s.processed[0].email.id);
+  }, [s.processed.length]);
   const p = s.processed.find(x => x.email.id === sel);
   const linked = p?.link.itemId ? s.items.find(i => i.id === p.link.itemId) : undefined;
   const scored = linked ? s.scored.find(x => x.item.id === linked.id) : undefined;
@@ -23,13 +35,13 @@ export function Inbox() {
       <div className="page-head">
         <div className="grow"><h1>Email signals</h1><p>Every email in the support mailbox is read by {ai?.mode === 'local-llm' ? 'the local model' : ai?.mode === 'team-hub' ? 'your team hub model' : 'the AI engine (the rule engine in this web demo; the desktop app uses a local model)'}, linked to a ticket and turned into structured signals. Nothing leaves this machine.</p></div>
         <div className="tabs" style={{ margin: 0, border: 0 }}>
-          {(['signals', 'linked', 'all'] as const).map(f => <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>{f === 'signals' ? 'Signals' : f === 'linked' ? 'Linked to tickets' : 'All mail'}</button>)}
+          {(['signals', 'linked', 'all'] as const).map(f => <button key={f} className={filter === f ? 'on' : ''} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'signals' ? 'Signals' : f === 'linked' ? 'Linked to tickets' : 'All mail'}</button>)}
         </div>
       </div>
       <div className="inbox">
         <div className="card list">
           {list.map(x => (
-            <div key={x.email.id} className={`mrow ${x.email.id === sel ? 'sel' : ''}`} onClick={() => setSel(x.email.id)}>
+            <div key={x.email.id} className={`mrow ${x.email.id === sel ? 'sel' : ''}`} aria-current={x.email.id === sel} {...pressable(() => setSel(x.email.id))}>
               <div className="row"><b className="grow ellipsis">{x.email.fromName}</b><span className="small muted nowrap">{rel(x.email.receivedAt, s.now)}</span></div>
               <div className="ellipsis small">{x.email.subject}</div>
               <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
@@ -59,7 +71,7 @@ export function Inbox() {
               {change.map((c, i) => {
                 const it = s.items.find(x => x.id === c.itemId)!;
                 return (
-                  <div key={i} className="banner warn" style={{ cursor: 'pointer' }} onClick={() => open(c.itemId)}>
+                  <div key={i} className="banner warn" style={{ cursor: 'pointer' }} {...pressable(() => open(c.itemId))}>
                     <Sparkles size={18} color="var(--warn)" />
                     <div className="small grow"><b>{it.externalId} moved {c.fromBand} → {c.toBand}</b> (score {c.fromScore} → {c.toScore}). {c.reason}</div>
                   </div>
@@ -81,7 +93,7 @@ export function Inbox() {
               <div>
                 <h3 style={{ fontSize: 14, margin: '0 0 8px' }}>Linked ticket</h3>
                 {linked ? (
-                  <div className="chain-node" onClick={() => open(linked.id)}>
+                  <div className="chain-node" {...pressable(() => open(linked.id))}>
                     <Link2 size={16} style={{ marginTop: 2 }} />
                     <div className="grow">
                       <div className="row small"><SourceBadge source={linked.source} /><span className="mono">{linked.externalId}</span>{scored && <BandChip band={scored.band} />}</div>

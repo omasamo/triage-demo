@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { X, Link2, Lock, Mail, Sparkles, UserRoundCog, Pin, CornerDownRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X, Link2, Lock, Mail, Sparkles, UserRoundCog, Pin, CornerDownRight, Target, ArrowRight } from 'lucide-react';
 import { useApp } from '../App.tsx';
 import type { Band } from '../../core/types.ts';
 import { Avatar, BandChip, SourceBadge, Tag, Tier, fmtDate, isAiFactor, rel, slaText } from './ui.tsx';
+import { nextStep, pressable } from './insight.tsx';
 
 const BANDS: Band[] = ['P1', 'P2', 'P3', 'P4'];
 
@@ -13,6 +14,10 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
   const [band, setBand] = useState<Band | null>(sc?.override?.band ?? null);
   const [reason, setReason] = useState(sc?.override?.reason ?? '');
   useEffect(() => { setBand(sc?.override?.band ?? null); setReason(sc?.override?.reason ?? ''); }, [itemId, sc?.override?.at]);
+  // Move keyboard focus into the panel when it opens or shows another item, and give it back on close.
+  const closeBtn = useRef<HTMLButtonElement>(null);
+  useEffect(() => { const prev = document.activeElement as HTMLElement | null; return () => prev?.focus?.(); }, []);
+  useEffect(() => { closeBtn.current?.focus(); }, [itemId]);
   if (!it) return null;
   const person = (id: string) => s.people.find(p => p.id === id);
   const customer = s.customers.find(c => c.id === it.customerId);
@@ -24,18 +29,20 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
   const linked = it.linkedIds.map(id => s.items.find(i => i.id === id)!).filter(Boolean);
   const maxPts = Math.max(40, ...(sc?.factors ?? []).map(f => Math.abs(f.points)));
   const handoff = s.handoffs.find(h => h.itemId === it.id);
+  const step = sc ? nextStep(s, sc) : undefined;
+  const act = () => { const t = step?.target; if (!t) return; if (t.workload) { onClose(); go('workload'); } else if (t.emailId) { onClose(); go('inbox', { emailId: t.emailId }); } else if (t.itemId) open(t.itemId); };
 
   return (
     <>
       <div className="scrim" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-label={`${it.externalId} details`}>
+      <aside className="drawer" role="dialog" aria-modal="true" aria-label={`${it.externalId} details`}>
         <div className="drawer-head">
           <div className="row">
             <SourceBadge source={it.source} /><span className="mono muted">{it.externalId}</span>
             {sc && <BandChip band={sc.band} />}
             {sc?.override && <Tag color="blue"><Pin size={11} /> Manager set</Tag>}
             <span className="grow" />
-            <button className="btn subtle" aria-label="Close" onClick={onClose}><X size={18} /></button>
+            <button ref={closeBtn} className="btn subtle" aria-label="Close" onClick={onClose}><X size={18} /></button>
           </div>
           <h2>{it.title}</h2>
           <div className="row small muted" style={{ flexWrap: 'wrap' }}>
@@ -44,6 +51,16 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
           </div>
         </div>
         <div className="drawer-body">
+          {step && (
+            <section className={`next-step ${step.kind}`}>
+              <Target size={18} />
+              <div className="grow">
+                <div className="start-label">Next step</div>
+                <div>{step.text}</div>
+              </div>
+              {step.cta && <button className="btn sm" onClick={act}>{step.cta} <ArrowRight size={12} /></button>}
+            </section>
+          )}
           {sc ? (
             <section>
               <div className="row" style={{ marginBottom: 6 }}>
@@ -74,11 +91,11 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
               <div className="row"><UserRoundCog size={16} /><h3 style={{ margin: 0 }}>Manager priority</h3></div>
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <div className="seg" role="radiogroup" aria-label="Priority">
-                  <button className={band === null ? 'on' : ''} onClick={() => setBand(null)}>Auto ({sc.override ? 'computed' : sc.band})</button>
-                  {BANDS.map(b => <button key={b} className={band === b ? 'on' : ''} onClick={() => setBand(b)}>{b}</button>)}
+                  <button role="radio" aria-checked={band === null} className={band === null ? 'on' : ''} onClick={() => setBand(null)}>Auto ({sc.override ? 'computed' : sc.band})</button>
+                  {BANDS.map(b => <button key={b} role="radio" aria-checked={band === b} className={band === b ? 'on' : ''} onClick={() => setBand(b)}>{b}</button>)}
                 </div>
               </div>
-              {band && <textarea className="input" placeholder="Reason (required for the audit log), e.g. Strategic account, renewal next week" value={reason} onChange={e => setReason(e.target.value)} />}
+              {band && <textarea className="input" aria-label="Reason for manual priority" placeholder="Reason (required for the audit log), e.g. Strategic account, renewal next week" value={reason} onChange={e => setReason(e.target.value)} />}
               <div className="row">
                 <button className="btn primary" disabled={(band !== null && !reason.trim()) || (band === (sc.override?.band ?? null) && reason === (sc.override?.reason ?? ''))}
                   onClick={() => void override(it.id, band, reason)}>{band ? `Set ${band}` : 'Use computed priority'}</button>
@@ -115,7 +132,7 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
               <div className="chain">
                 {blockers.map(b => (
                   <div key={b.item.id}>
-                    <div className="chain-node" onClick={() => open(b.item.id)}>
+                    <div className="chain-node" {...pressable(() => open(b.item.id))}>
                       <Lock size={16} color="var(--danger)" style={{ marginTop: 2 }} />
                       <div className="grow">
                         <div className="row small"><b>Blocked by</b><SourceBadge source={b.item.source} /><span className="mono">{b.item.externalId}</span>{b.band && <BandChip band={b.band} />}</div>
@@ -131,7 +148,7 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
                 </div>
                 {blocks.map(b => (
                   <div key={b.id}><div className="chain-link" />
-                    <div className="chain-node" onClick={() => open(b.id)}>
+                    <div className="chain-node" {...pressable(() => open(b.id))}>
                       <Lock size={16} color="var(--warn)" style={{ marginTop: 2 }} />
                       <div><div className="row small"><b>Blocks</b><SourceBadge source={b.source} /><span className="mono">{b.externalId}</span></div><div>{b.title}</div></div>
                     </div>
@@ -139,7 +156,7 @@ export function ItemDrawer({ itemId, onClose }: { itemId: string; onClose: () =>
                 ))}
                 {linked.map(l => (
                   <div key={l.id}><div className="chain-link" />
-                    <div className="chain-node" onClick={() => open(l.id)}>
+                    <div className="chain-node" {...pressable(() => open(l.id))}>
                       <Link2 size={16} style={{ marginTop: 2 }} />
                       <div><div className="row small"><b>Linked</b><SourceBadge source={l.source} /><span className="mono">{l.externalId}</span></div><div>{l.title}</div></div>
                     </div>

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pin, Sparkles } from 'lucide-react';
+import { Pin } from 'lucide-react';
 import { useApp } from '../App.tsx';
 import { Avatar, BandChip, ScoreBar, SourceBadge, Tag, Tier, slaText } from '../components/ui.tsx';
-
-const SHORT: Record<string, string> = { escalation: 'Escalated', deadline: 'Deadline', executive: 'Exec', deescalation: 'Calmed' };
+import { WhyTags, pressable } from '../components/insight.tsx';
 
 export function Queue() {
   const { s, open, flash, routeOpts } = useApp();
@@ -35,31 +34,31 @@ export function Queue() {
             <option value="all">All teams</option>{s.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <div className="seg">
-            {['all', 'siebel', 'jira'].map(v => <button key={v} className={source === v ? 'on' : ''} onClick={() => setSource(v)}>{v === 'all' ? 'All sources' : v === 'siebel' ? 'Siebel' : 'Jira'}</button>)}
+            {['all', 'siebel', 'jira'].map(v => <button key={v} className={source === v ? 'on' : ''} aria-pressed={source === v} onClick={() => setSource(v)}>{v === 'all' ? 'All sources' : v === 'siebel' ? 'Siebel' : 'Jira'}</button>)}
           </div>
           <div className="seg">
-            {['all', 'P1', 'P2', 'P3', 'P4'].map(v => <button key={v} className={band === v ? 'on' : ''} onClick={() => setBand(v)}>{v === 'all' ? 'Any priority' : v}</button>)}
+            {['all', 'P1', 'P2', 'P3', 'P4'].map(v => <button key={v} className={band === v ? 'on' : ''} aria-pressed={band === v} onClick={() => setBand(v)}>{v === 'all' ? 'Any priority' : v}</button>)}
           </div>
-          <button className={`btn ${due === '24h' ? 'primary' : ''}`} onClick={() => setDue(d => d === '24h' ? 'all' : '24h')}>SLA due in 24 h</button>
-          <span className="grow" /><span className="small muted">{rows.length} items</span>
+          <button className={`btn ${due === '24h' ? 'primary' : ''}`} aria-pressed={due === '24h'} onClick={() => setDue(d => d === '24h' ? 'all' : '24h')}>SLA due in 24 h</button>
+          <span className="grow" /><span className="small muted nowrap">{rows.length} items</span>
+          <span className="legend small muted"><i className="lg-rec" />record fields <i className="lg-ai" />read from email</span>
         </div>
         <div style={{ maxHeight: 'calc(100vh - 230px)', overflow: 'auto' }}>
           <table className="table">
-            <thead><tr><th className="opt" style={{ width: 40 }}>#</th><th>Priority</th><th>Item</th><th>Owner</th><th className="opt">Status</th><th>SLA</th><th>Score</th><th className="opt">Email signals</th></tr></thead>
+            <thead><tr><th className="opt" style={{ width: 40 }}>#</th><th>Priority</th><th>Item</th><th>Owner</th><th className="opt">Status</th><th>SLA</th><th className="opt">Why it ranks</th><th>Score</th></tr></thead>
             <tbody>
               {rows.map((x, i) => {
                 const sla = slaText(x.item.slaDueAt, s.now);
-                const ai = x.factors.filter(f => ['escalation', 'deadline', 'executive', 'deescalation'].includes(f.key));
                 return (
-                  <tr key={x.item.id} onClick={() => open(x.item.id)} className={flash.has(x.item.id) ? 'flash' : ''}>
+                  <tr key={x.item.id} {...pressable(() => open(x.item.id), false)} className={flash.has(x.item.id) ? 'flash' : ''}>
                     <td className="muted small opt">{i + 1}</td>
                     <td><div className="row" style={{ gap: 4 }}><BandChip band={x.band} />{x.override && <span title={`Set by ${x.override.by}: ${x.override.reason}`}><Pin size={13} color="var(--brand)" /></span>}</div></td>
-                    <td className="title-cell"><div className="row small"><SourceBadge source={x.item.source} /><span className="mono muted">{x.item.externalId}</span><span className="muted">· {customer(x.item.customerId)?.name}</span><Tier c={customer(x.item.customerId)} /></div><div className="ellipsis">{x.item.title}</div></td>
+                    <td className="title-cell"><div className="ellipsis item-title">{x.item.title}</div><div className="row small item-meta"><SourceBadge source={x.item.source} /><span className="mono">{x.item.externalId}</span><span>· {customer(x.item.customerId)?.name}</span><Tier c={customer(x.item.customerId)} /></div></td>
                     <td><div className="row small"><Avatar person={person(x.item.assigneeId)} /><span className="nowrap">{person(x.item.assigneeId)?.name.split(' ')[0]}</span></div></td>
                     <td className="small nowrap opt">{x.item.status}</td>
                     <td><Tag color={sla.cls}>{sla.text}</Tag></td>
-                    <td><div className="row"><ScoreBar s={x} /><b className="small">{x.score}</b></div></td>
-                    <td className="opt"><div className="row" style={{ gap: 4 }}>{ai.slice(0, 2).map(f => <Tag key={f.key} color={f.key === 'deescalation' ? 'green' : 'purple'} title={f.detail}><Sparkles size={10} />{SHORT[f.key]}</Tag>)}</div></td>
+                    <td className="opt"><WhyTags x={x} /></td>
+                    <td><div className="row"><ScoreBar s={x} width={72} /><span className="small num">{x.score}</span></div></td>
                   </tr>
                 );
               })}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, BellRing, Check, AlertTriangle } from 'lucide-react';
 import { useApp } from '../App.tsx';
 import { Avatar, BandChip, Tag } from '../components/ui.tsx';
+import { pressable } from '../components/insight.tsx';
 
 export function Workload() {
   const { s, open, handoff } = useApp();
@@ -30,25 +31,25 @@ export function Workload() {
             return (
               <div className="handoff" key={h.itemId}>
                 <div className="grow">
-                  <div className="row" style={{ cursor: 'pointer' }} onClick={() => open(it.id)}>{sc && <BandChip band={sc.band} />}<span className="mono">{it.externalId}</span><span className="ellipsis">{it.title}</span></div>
+                  <div className="row" style={{ cursor: 'pointer' }} {...pressable(() => open(it.id))}>{sc && <BandChip band={sc.band} />}<span className="mono">{it.externalId}</span><span className="ellipsis">{it.title}</span></div>
                   <div className="row small" style={{ marginTop: 6 }}>
                     <Avatar person={person(h.fromId)} /><span>{person(h.fromId).name}</span><ArrowRight size={14} /><Avatar person={person(h.toId)} /><b>{person(h.toId).name}</b>{h.crossTeam && <Tag color="orange">other team</Tag>}
                   </div>
                   <div className="small muted" style={{ marginTop: 4 }}>{h.reason}</div>
                 </div>
-                <button className="btn primary" onClick={() => void handoff(h.itemId, h.toId)}><Check size={14} /> Approve</button>
+                <button className="btn" onClick={() => void handoff(h.itemId, h.toId)} aria-label={`Approve hand-off of ${it.externalId} to ${person(h.toId).name}`}><Check size={14} color="var(--ok)" /> Approve</button>
               </div>
             );
           })}
         </div>
         <div className="card">
-          <div className="card-head"><BellRing size={16} /><h2>Reminders</h2><span className="sub">red ones notify now, the rest wait for a daily digest</span></div>
+          <div className="card-head"><BellRing size={16} /><h2>Reminders</h2><span className="sub">red ones would be sent now, the rest batched in a daily digest · nothing is sent in this demo</span></div>
           <div className="feed" style={{ maxHeight: 420, overflow: 'auto' }}>
             {reminders.slice(0, 30).map(r => (
-              <div key={r.id} className="feed-item" onClick={() => r.itemId && open(r.itemId)}>
+              <div key={r.id} className="feed-item" {...pressable(() => r.itemId && open(r.itemId))}>
                 <Avatar person={person(r.personId)} />
                 <div className="grow">
-                  <div className="row"><b className="small">{person(r.personId)?.name}</b><Tag color={r.severity === 'critical' ? 'red' : 'orange'}>{r.kind.replace('-', ' ')}</Tag></div>
+                  <div className="row"><b className="small">{person(r.personId)?.name}</b><Tag color={r.severity === 'critical' ? 'red' : 'orange'}>{r.severity === 'critical' ? 'Notified now' : 'In digest'} · {r.kind.replace('-', ' ')}</Tag></div>
                   <div className="small">{r.message}</div>
                 </div>
               </div>
@@ -74,7 +75,7 @@ export function Workload() {
               </div>
               <div className="loadbar" style={{ marginBottom: 12 }}><span style={{ width: `${Math.min(1.6, l.loadRatio) / 1.6 * 100}%`, background: color }} /><i className="cap" style={{ left: `${100 / 1.6}%` }} /></div>
               {mine.map(x => (
-                <div key={x.item.id} className="row small" style={{ padding: '3px 0', cursor: 'pointer' }} onClick={() => open(x.item.id)}>
+                <div key={x.item.id} className="row small" style={{ padding: '3px 0', cursor: 'pointer' }} {...pressable(() => open(x.item.id))}>
                   <BandChip band={x.band} /><span className="mono muted">{x.item.externalId}</span><span className="ellipsis grow">{x.item.title}</span>
                   {l.atRiskItemIds.includes(x.item.id) && <Tag color="red">at risk</Tag>}
                 </div>

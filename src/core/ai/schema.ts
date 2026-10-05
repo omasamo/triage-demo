@@ -42,7 +42,7 @@ Rules:
 - isEscalation: the sender raises pressure (urgent, business impact, executives involved, penalties, deadline pulled in).
 - isDeescalation: the sender says the issue is resolved, worked around or no longer urgent.
 - evidence: copy the single most important sentence verbatim from the email.
-- deadline: if the email says by when something must happen (a day, date or time, in any language), quote: copy those words exactly; english: the same words in English. For example {"quote": "entro venerdì", "english": "by Friday"} or {"quote": "until the 3rd", "english": "until the 3rd"}. If there are several, use the one for the work itself, not for a reply. If there is none, both are "".
+- deadline: if the email says by when something must happen (a day, date or time, in any language), quote: copy those words exactly; english: the same words in English. For example {"quote": "entro venerdì", "english": "by Friday"} or {"quote": "until the 3rd", "english": "until the 3rd"}. If there are several, use the one by which the work must be done, never a date by which to reply, confirm or send a status. If there is none, both are "".
 - summary: one short line in English, max 15 words.
 - Newsletters, HR and calendar mail: urgency "none", customerImpact "none".`;
 }

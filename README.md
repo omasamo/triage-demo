@@ -71,7 +71,7 @@ Rule engine (this repo's CI):
 | Set | Escalation precision | Escalation recall | Linking | Deadlines | De-escalations | Injections blocked |
 |---|---|---|---|---|---|---|
 | Synthetic (312) | 100% | 100% | 96.8% | 100% | 100% | 100% |
-| Hold-out A (25) | 50% | 18% | 89% | 25% | 0% | 0% |
+| Hold-out A (25) | 67% | 18% | 89% | 25% | 0% | 0% |
 | Hold-out B (25) | 0% | 0% | 100% | 22% | 0% | 50% |
 
 The rules score perfectly on the templates they were written for and collapse on realistic mail. That gap is what the model is for.

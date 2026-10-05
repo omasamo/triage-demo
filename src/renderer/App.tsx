@@ -164,19 +164,20 @@ export function App() {
           </div>
           <GlobalSearch />
           <span className="clock" title="Demo clock">{fmtTime(ctx.s.now)} UTC</span>
-          <button className="btn primary" style={{ background: '#fff', color: 'var(--brand)', borderColor: '#fff' }} onClick={() => void next()} disabled={busy || !ctx.s.incomingLeft}
+          {/* A demo control, not part of the product: styled apart so it does not compete with the work on the page. */}
+          <button className="demo-btn" onClick={() => void next()} disabled={busy || !ctx.s.incomingLeft} aria-label="Demo: next email"
             title={ctx.s.nextIncoming ? `Next: ${ctx.s.nextIncoming.fromName}: ${ctx.s.nextIncoming.subject} (shortcut N)` : 'No more demo emails'}>
-            <Mail size={16} /><span className="tb-label">{busy ? 'Reading email…' : `Next email (${ctx.s.incomingLeft})`}</span>
+            <span className="demo-tag">Demo</span><Mail size={15} /><span className="tb-label">{busy ? 'Reading email…' : `Next email (${ctx.s.incomingLeft})`}</span><kbd className="tb-label">N</kbd>
           </button>
-          <button className="ai-pill" onClick={() => ctx.go('settings')} title={ai?.message}>
+          <button className="ai-pill" onClick={() => ctx.go('settings')} title={ai?.message} aria-label={`AI engine: ${ai?.mode === 'local-llm' ? 'local model' : ai?.mode === 'team-hub' ? 'team hub' : 'rule engine'}. Open settings`}>
             <span className={`dot ${ai?.mode === 'rules' ? 'rules' : ''}`} />
             <span className="tb-label">{ai?.mode === 'local-llm' ? `${(ai.emailModel ?? '').replace(/\.gguf$/, '').replace(/^.*?(Qwen)/i, '$1').slice(0, 22)} · ${ai.device ?? 'local'}` : ai?.mode === 'team-hub' ? `Team hub · ${ai.emailModel}` : 'Rule engine'}</span>
           </button>
           <button className="tb-btn" aria-label="Toggle theme" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
         </header>
-        <nav className="nav">
+        <nav className="nav" aria-label="Main">
           {NAV.map(n => (
-            <button key={n.id} className={route === n.id ? 'active' : ''} onClick={() => ctx.go(n.id)} title={n.label}>
+            <button key={n.id} className={route === n.id ? 'active' : ''} aria-current={route === n.id ? 'page' : undefined} aria-label={n.label} onClick={() => ctx.go(n.id)} title={n.label}>
               <n.icon size={18} /><span className="label">{n.label}</span>
               {n.id === 'queue' && <span className={`count ${p1 ? 'alert' : ''}`}>{p1}</span>}
               {n.id === 'inbox' && <span className="count">{signals}</span>}
@@ -184,10 +185,10 @@ export function App() {
             </button>
           ))}
           <div className="section">Governance</div>
-          <button className={route === 'audit' ? 'active' : ''} onClick={() => ctx.go('audit')} title="Audit log"><ScrollText size={18} /><span className="label">Audit log</span></button>
-          <button className={route === 'settings' ? 'active' : ''} onClick={() => ctx.go('settings')} title="Settings"><SettingsIcon size={18} /><span className="label">Settings</span></button>
+          <button className={route === 'audit' ? 'active' : ''} aria-current={route === 'audit' ? 'page' : undefined} aria-label="Audit log" onClick={() => ctx.go('audit')} title="Audit log"><ScrollText size={18} /><span className="label">Audit log</span></button>
+          <button className={route === 'settings' ? 'active' : ''} aria-current={route === 'settings' ? 'page' : undefined} aria-label="Settings" onClick={() => ctx.go('settings')} title="Settings"><SettingsIcon size={18} /><span className="label">Settings</span></button>
           <div className="spacer" />
-          <button onClick={async () => { setS(await api!.reset()); setChatLog([]); toast({ kind: 'info', title: 'Demo reset', body: 'Back to Tuesday 09:00 with the original data.' }); }} title="Reset demo">
+          <button onClick={async () => { setS(await api!.reset()); setChatLog([]); toast({ kind: 'info', title: 'Demo reset', body: 'Back to Tuesday 09:00 with the original data.' }); }} title="Reset demo" aria-label="Reset demo">
             <RotateCcw size={18} /><span className="label">Reset demo</span>
           </button>
           <div className="persona">

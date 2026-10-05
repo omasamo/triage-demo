@@ -21,15 +21,21 @@ const POSITIVE = /(thanks for the quick|good news|great|works now)/i;
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
+/** A calendar date written out in the email ("Thursday 8 October") next to deadline words, with the words themselves. */
+export function writtenDeadline(text: string, nowIso: string): { at: string; text: string } | null {
+  const now = new Date(nowIso);
+  const t = text.toLowerCase();
+  const dm = t.match(/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)/);
+  if (!dm || !/(go-live|deadline|by|ready|production|instead|moved|forward|before|until)/.test(t)) return null;
+  const d = new Date(Date.UTC(now.getUTCFullYear(), MONTHS.indexOf(dm[2]), Number(dm[1]), 17));
+  return { at: d.toISOString(), text: text.substr(dm.index!, dm[0].length) };
+}
+
 export function extractDeadline(text: string, nowIso: string): string | null {
   const now = new Date(nowIso);
   const t = text.toLowerCase();
-  // "Thursday 8 October" / "8 October"
-  const dm = t.match(/(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)/);
-  if (dm) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), MONTHS.indexOf(dm[2]), Number(dm[1]), 17));
-    if (/(go-live|deadline|by|ready|production|instead|moved|forward)/.test(t)) return d.toISOString();
-  }
+  const written = writtenDeadline(text, nowIso);
+  if (written) return written.at;
   const tm = t.match(/by tomorrow(?:\s+(\d{1,2})[:.](\d{2}))?/);
   if (tm) {
     const d = new Date(now.getTime() + 86400_000);
@@ -105,5 +111,10 @@ export function combineWithRules(model: EmailSignals, e: Email, nowIso: string):
     return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null, deadlineText: undefined,
       evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
   }
-  return { ...model, ticketRefs, deadline: model.deadline ?? rules.deadline, isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };
+  // A calendar date written in the email beats a relative phrase the model picked ("confirm by end of day today"
+  // next to "go-live on Thursday 8 October"): the written date is what the sender actually committed to.
+  const written = writtenDeadline(e.body, e.receivedAt);
+  const deadline = written?.at ?? model.deadline ?? rules.deadline;
+  return { ...model, ticketRefs, deadline, deadlineText: written && deadline === written.at ? written.text : model.deadlineText,
+    isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };
 }

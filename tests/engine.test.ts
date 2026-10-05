@@ -114,6 +114,16 @@ test('chat answers open with a conclusion computed from the data, whatever the m
   assert.match(acme.engine, /^Rule engine \(fallback/);
 });
 
+test('a date written in the email beats a reply-by phrase the model quoted', async () => {
+  const { combineWithRules } = await import('../src/core/ai/heuristic.ts');
+  const { normalizeSignals } = await import('../src/core/ai/schema.ts');
+  const acme = data.incoming.find(e => /go-live moved to Thursday/i.test(e.subject))!;
+  const model = normalizeSignals({ isEscalation: true, urgency: 'critical', deadline: { quote: 'by end of day today', english: 'by end of day today' } }, acme.receivedAt);
+  const s = combineWithRules(model, acme, data.now);
+  assert.equal(s.deadline, '2026-10-08T17:00:00.000Z');
+  assert.equal(s.deadlineText, '8 October');
+});
+
 test('rule safety net quarantines known injections and drops ticket ids the email never mentions', async () => {
   const { combineWithRules } = await import('../src/core/ai/heuristic.ts');
   const { normalizeSignals } = await import('../src/core/ai/schema.ts');

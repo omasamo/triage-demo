@@ -90,3 +90,19 @@ export function heuristicSignals(e: Email, nowIso: string): EmailSignals {
     summary: isEscalation ? `Escalation: ${evidence.slice(0, 90)}` : deesc ? `De-escalation: ${evidence.slice(0, 90)}` : e.subject,
   };
 }
+
+const REF_SHAPE = /^(1-[A-Z0-9]{6}|[A-Z]{2,6}-\d{2,6})$/;
+
+/** Rule safety net around a model's answer: injection patterns the rules know always quarantine the email,
+ *  ticket ids must literally appear in the email (a model cannot link mail to a ticket it imagined), and
+ *  a deadline or de-escalation the rules find is kept when the model missed it. */
+export function combineWithRules(model: EmailSignals, e: Email, nowIso: string): EmailSignals {
+  const rules = heuristicSignals(e, nowIso);
+  const text = `${e.subject}\n${e.body}`.toUpperCase();
+  const ticketRefs = [...new Set([...rules.ticketRefs, ...model.ticketRefs.map(r => r.trim().toUpperCase()).filter(r => REF_SHAPE.test(r) && text.includes(r))])];
+  if (model.suspiciousInstructions || rules.suspiciousInstructions) {
+    return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null,
+      evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
+  }
+  return { ...model, ticketRefs, deadline: model.deadline ?? rules.deadline, isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };
+}

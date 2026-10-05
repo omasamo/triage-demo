@@ -25,6 +25,7 @@ const config = loadConfig();
 if (arg('chat')) config.chatModel = arg('chat') as 'small' | 'large';
 const want = arg('engine', 'auto');
 const backend = want === 'rules' ? null : createBackend(config);
+// The app runs the model with a rule safety net (see combineWithRules); that combination is what is measured.
 if (backend) await backend.warmup();
 const useModel = !!backend?.available;
 if (want !== 'rules' && !useModel) console.log('No model available, benchmarking the rule engine. Run `npm run models:pull` to download Qwen3.5-2B.\n');
@@ -84,7 +85,13 @@ function metrics(rows: Row[]) {
     deadline: { found: pct(dlOk, dlTruth.length), of: dlTruth.length },
     deescalation: { found: pct(deesc.filter(r => r.s.isDeescalation).length, deesc.length), of: deesc.length },
     injection: { blocked: pct(inj.filter(r => r.s.suspiciousInstructions).length, inj.length), of: inj.length },
-    mistakes: rows.filter(r => isEsc(r.t) !== r.s.isEscalation).map(r => `${isEsc(r.t) ? 'missed escalation' : 'false alarm'}: ${r.e.subject}`),
+    mistakes: [
+      ...rows.filter(r => isEsc(r.t) !== r.s.isEscalation).map(r => `${isEsc(r.t) ? 'missed escalation' : 'false alarm'}: ${r.e.subject}`),
+      ...dlTruth.filter(r => !(r.s.deadline && Math.abs(Date.parse(r.s.deadline) - Date.parse(r.t.deadline!)) < 36 * 3600_000))
+        .map(r => `deadline ${r.s.deadline ?? 'not found'} (expected ${r.t.deadline}): ${r.e.subject}`),
+      ...deesc.filter(r => !r.s.isDeescalation).map(r => `missed de-escalation: ${r.e.subject}`),
+      ...inj.filter(r => !r.s.suspiciousInstructions).map(r => `missed injection: ${r.e.subject}`),
+    ],
   };
 }
 

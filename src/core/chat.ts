@@ -1,8 +1,11 @@
-// Ticket Q&A. A small set of read-only tools over the engine state. The local LLM calls these
-// tools (function calling); without a model, a rule-based router picks the tool from the question.
+// Ticket Q&A. A small set of read-only tools over the engine state. A model (local or team hub)
+// picks the tool; without one, a rule-based router does. Either way the app runs the tool and writes
+// the facts itself, so the ticket ids, owners and numbers in an answer always come from the data.
 import type { Snapshot } from './engine.ts';
 import type { ScoredItem, WorkItem } from './types.ts';
 import { fmtHours } from './scoring.ts';
+import { TOOLS, leadPrompt, runToolQuery, toolPickerPrompt, type ToolQuery } from './ai/chatPlan.ts';
+import { parseModelJson } from './ai/json.ts';
 
 export interface ChatAnswer {
   text: string;
@@ -15,6 +18,10 @@ export interface ChatAnswer {
 export interface ChatTurn { role: 'user' | 'assistant'; text: string }
 
 const H = 3600_000;
+const GENERIC = new Set(['customer', 'team', 'support']);
+const STOP = new Set(['anything', 'about', 'what', 'which', 'there', 'show', 'tell', 'with', 'the', 'for', 'are', 'any', 'from', 'have', 'this', 'that', 'ticket', 'tickets', 'issue', 'issues', 'open', 'items', 'all']);
+const ID_RE = /\b(1-[A-Z0-9]{6}|[A-Z]{2,6}-\d{2,6})\b/gi;
+const ID_EXACT = /\b(1-[A-Z0-9]{6}|[A-Z]{2,6}-\d{2,6})\b/g;
 
 export class ChatTools {
   constructor(private s: Snapshot) {}
@@ -27,18 +34,16 @@ export class ChatTools {
     const r = ref.trim().replace(/^SR\s*/i, '').toUpperCase();
     return this.s.items.find(i => i.externalId.toUpperCase() === r || i.id.toUpperCase() === r);
   }
-  matchTeam(q: string) {
-    const l = q.toLowerCase();
-    return this.s.teams.find(t => l.includes(t.name.toLowerCase()) || t.name.toLowerCase().split(/[ &]+/).some(w => w.length > 3 && l.includes(w)));
+  /** Whole-word mention of a person (full or first name), customer (full or first word) or team (name or a distinctive word). */
+  mentions(text: string, name: string, kind: 'person' | 'customer' | 'team') {
+    const words = kind === 'team' ? name.split(/[ &]+/).filter(w => w.length > 3 && !GENERIC.has(w.toLowerCase())) : [name.split(' ')[0]];
+    return [name, ...words].some(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
   }
-  matchPerson(q: string) {
-    const l = q.toLowerCase();
-    return this.s.people.find(p => l.includes(p.name.toLowerCase()) || l.includes(p.name.split(' ')[0].toLowerCase()));
-  }
-  matchCustomer(q: string) {
-    const l = q.toLowerCase();
-    return this.s.customers.find(c => l.includes(c.name.toLowerCase()) || l.includes(c.name.split(' ')[0].toLowerCase()));
-  }
+  matchTeam(q: string) { return this.s.teams.find(t => this.mentions(q, t.name, 'team')); }
+  matchPerson(q: string) { return this.s.people.find(p => p.role !== 'Manager' && this.mentions(q, p.name, 'person')); }
+  matchCustomer(q: string) { return this.s.customers.find(c => this.mentions(q, c.name, 'customer')); }
+  people() { return this.s.people.filter(p => p.role !== 'Manager'); }
+  customers() { return this.s.customers; }
 
   brief(x: ScoredItem | WorkItem) {
     const it = 'item' in x ? x.item : x;
@@ -59,7 +64,7 @@ export class ChatTools {
     if (f.assignee) list = list.filter(x => this.person(x.item.assigneeId).toLowerCase().includes(l(f.assignee)!.split(' ')[0]));
     if (f.band) list = list.filter(x => x.band === f.band!.toUpperCase());
     if (f.text) {
-      const words = l(f.text)!.split(/\W+/).filter(w => w.length > 2);
+      const words = l(f.text)!.split(/\W+/).filter(w => w.length > 2 && !STOP.has(w));
       list = list.filter(x => words.some(w => `${x.item.title} ${x.item.description}`.toLowerCase().includes(w)));
     }
     return list.slice(0, f.limit ?? 8).map(x => this.brief(x));
@@ -108,10 +113,11 @@ export class ChatTools {
     return this.s.changes.slice(0, limit).map(c => ({ item: this.s.items.find(i => i.id === c.itemId)!.externalId, from: c.fromBand, to: c.toBand, reason: c.reason, at: c.at }));
   }
 
-  /** Tool: items breaching SLA within N hours. */
-  slaRisk(hours = 24) {
+  /** Tool: items breaching SLA within N hours, optionally for one team. */
+  slaRisk(hours = 24, team?: string) {
     const now = Date.parse(this.s.now);
-    return this.s.scored.filter(x => x.item.status !== 'Waiting on Customer' && Date.parse(x.item.slaDueAt) - now < hours * H)
+    const t = team ? this.matchTeam(team) : undefined;
+    return this.s.scored.filter(x => x.item.status !== 'Waiting on Customer' && Date.parse(x.item.slaDueAt) - now < hours * H && (!t || x.item.teamId === t.id))
       .sort((a, b) => a.item.slaDueAt.localeCompare(b.item.slaDueAt)).slice(0, 10).map(x => this.brief(x));
   }
 
@@ -123,61 +129,137 @@ export class ChatTools {
 }
 
 const line = (b: ReturnType<ChatTools['brief']>) => `• ${b.id} (${b.system}) ${b.title}: ${b.priority}, ${b.status}, ${b.assignee}, SLA ${b.slaDue}`;
+const EMPTY_ARGS = { id: '', text: '', customer: '', team: '', assignee: '', band: '' };
+const callLabel = (q: ToolQuery) => `${q.tool}(${JSON.stringify(Object.fromEntries(Object.entries(q.args ?? {}).filter(([, v]) => v)))})`;
 
-/** Rule-based router used when no local model is loaded. */
+/** Rule-based router used when no model is loaded (and when a model's choice cannot be parsed). */
+export function routeQuestion(question: string, t: ChatTools): ToolQuery {
+  const q = question.toLowerCase();
+  const id = question.match(ID_RE)?.[0] ?? '';
+  const customer = t.matchCustomer(question)?.name ?? '';
+  const team = t.matchTeam(question)?.name ?? '';
+  const assignee = t.matchPerson(question)?.name ?? '';
+  const band = question.match(/\bP[1-4]\b/i)?.[0].toUpperCase() ?? '';
+  const a = EMPTY_ARGS;
+  if (/(block|stuck|waiting for|holding up|go-live|golive)/.test(q) && (customer || id)) return { tool: 'blockers', args: { ...a, customer, id } };
+  if (/(overload|too much|capacity|workload|busy|rebalanc|hand.?off)/.test(q)) return { tool: 'workload', args: { ...a, team } };
+  if (/(chang|moved|jump|escalat|what happened|new today|since)/.test(q)) return { tool: 'recentChanges', args: a };
+  if (/(sla|breach|overdue|due soon)/.test(q)) return { tool: 'slaRisk', args: { ...a, team } };
+  if (id) return { tool: 'getItem', args: { ...a, id } };
+  if (assignee || team || customer || band || /(top|urgent|priorit|focus|first|important|next)/.test(q))
+    return { tool: 'searchItems', args: { ...a, customer, team: assignee ? '' : team, assignee, band } };
+  return { tool: 'searchItems', args: { ...a, text: question } };
+}
+
+/** Keeps only the arguments the question (or the last two turns) actually names, and fills in the ones it
+ *  names that the model left out. A small model cannot narrow a query to a team nobody asked about. */
+export function groundQuery(t: ChatTools, q: ToolQuery, question: string, history: ChatTurn[] = []): ToolQuery {
+  const recent = history.slice(-2).map(h => h.text).join('\n');
+  const pick = (v: string | undefined, kind: 'person' | 'customer' | 'team', match: (s: string) => { name: string } | undefined) => {
+    const meant = v ? match(v) : undefined;
+    if (meant && (t.mentions(question, meant.name, kind) || t.mentions(recent, meant.name, kind))) return meant.name;
+    return match(question)?.name ?? '';
+  };
+  const a = q.args ?? {};
+  const ids = [...question.matchAll(ID_RE), ...recent.matchAll(ID_RE)].map(m => m[0].toUpperCase());
+  const assignee = pick(a.assignee, 'person', s => t.matchPerson(s));
+  const args = {
+    id: a.id && ids.includes(a.id.toUpperCase()) ? a.id : question.match(ID_RE)?.[0] ?? '',
+    customer: pick(a.customer, 'customer', s => t.matchCustomer(s)),
+    team: assignee ? '' : pick(a.team, 'team', s => t.matchTeam(s)),
+    assignee,
+    band: question.match(/\bP[1-4]\b/i)?.[0].toUpperCase() ?? '',
+    text: '',
+  };
+  if (q.tool === 'searchItems' && !args.customer && !args.team && !args.assignee && !args.band && !/(top|urgent|priorit|focus|first|important|next)/i.test(question))
+    args.text = a.text || question;
+  return { tool: TOOLS.includes(q.tool) ? q.tool : 'searchItems', args };
+}
+
+/** Writes the facts for a tool result. This text is what the user sees, with or without a model. */
+export function renderResult(t: ChatTools, q: ToolQuery, result: unknown): string {
+  const a = { ...EMPTY_ARGS, ...q.args };
+  switch (q.tool) {
+    case 'blockers': {
+      const r = result as ReturnType<ChatTools['blockers']>;
+      if (!r.length) return `I found no blocked open items for ${a.customer || a.id || 'that question'}.`;
+      return r.map(it => `${it.id} "${it.title}" is ${it.status}, ${it.priority}, owned by ${it.assignee}: `
+        + (it.blockedBy.length ? it.blockedBy.map(b => `blocked by ${b.id} "${b.title}" (${b.assignee}, ${b.status}${b.ownerLoad ? `; ${b.assignee.split(' ')[0]} is ${b.ownerLoad}` : ''})`).join('; ')
+          : it.goLive ? 'on the go-live path, no technical blocker recorded' : 'no recorded blocker') + '.').join('\n');
+    }
+    case 'workload': {
+      const w = result as ReturnType<ChatTools['workload']>;
+      const over = w.people.filter(p => p.status !== 'ok').sort((x, y) => y.loadPct - x.loadPct);
+      return (over.length ? `${over.filter(p => p.status === 'overloaded').length} overloaded, ${over.filter(p => p.status === 'busy').length} busy${a.team ? ` in ${a.team}` : ''}:\n`
+        + over.slice(0, 6).map(p => `• ${p.name} (${p.team}): ${p.queuedHours} h queued, ${p.loadPct}% of capacity, ${p.atRisk} at risk`).join('\n') : `Nobody is overloaded${a.team ? ` in ${a.team}` : ''} right now.`)
+        + (w.suggestedHandoffs.length ? `\n\nSuggested hand-offs:\n` + w.suggestedHandoffs.map(h => `• ${h.item}: ${h.from} → ${h.to}`).join('\n') : '');
+    }
+    case 'recentChanges': {
+      const c = result as ReturnType<ChatTools['recentChanges']>;
+      if (!c.length) return 'No priority changes detected from email yet. Press "Next email" to let new mail arrive.';
+      return 'Latest priority changes picked up from email:\n' + c.map(x => `• ${x.item}: ${x.from} → ${x.to}. ${x.reason}`).join('\n');
+    }
+    case 'slaRisk': {
+      const r = result as ReturnType<ChatTools['slaRisk']>;
+      return r.length ? `${r.length} items breach or are due within 24 h${a.team ? ` in ${a.team}` : ''}:\n` + r.slice(0, 8).map(line).join('\n') : 'Nothing breaches or is due within 24 h.';
+    }
+    case 'getItem': {
+      if (Array.isArray(result)) break;
+      const d = result as ReturnType<ChatTools['getItem']>;
+      if ('error' in d) return d.error!;
+      return `${d.id} (${d.system}) "${d.title}"\n${d.status}, ${d.priority}, ${d.customer}, owned by ${d.assignee}, SLA ${d.slaDue}.\n\nWhy it ranks here:\n${(d.scoreFactors ?? []).slice(0, 5).map(f => `• ${f}`).join('\n')}`
+        + (d.recentEmails.length ? `\n\nLatest email: ${d.recentEmails[0].from}: "${d.recentEmails[0].evidence || d.recentEmails[0].summary}"` : '');
+    }
+  }
+  const r = (result as ReturnType<ChatTools['searchItems']>).slice(0, 5);
+  if (a.band && !a.assignee && !a.customer && !a.team) return r.length ? `Top ${r.length} open ${a.band} items:\n${r.map(line).join('\n')}` : `No open ${a.band} items.`;
+  const who = a.assignee || a.customer || a.team;
+  if (!who && a.text) return r.length ? `Closest matches:\n${r.map(line).join('\n')}` : 'I could not find anything for that. Try a ticket id, a customer, a team or a person.';
+  return r.length ? `Top ${r.length} open items for ${who || 'all teams'}, by priority:\n${r.map(line).join('\n')}` : `No open items for ${who || 'that question'}.`;
+}
+
+/** Accepts a model's lead sentence only if every ticket id, name and number in it appears in the facts. */
+export function checkLead(lead: string, facts: string, t: ChatTools): string {
+  const flat = lead.replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim();
+  const s = (flat.match(/[^.!?]+[.!?]+/g) ?? [flat]).slice(0, 2).join('').trim().slice(0, 300);
+  if (!s) return '';
+  const F = facts.toUpperCase();
+  if ([...s.matchAll(ID_EXACT)].some(m => !F.includes(m[0]))) return '';
+  if (t.people().some(p => t.mentions(s, p.name, 'person') && !t.mentions(facts, p.name, 'person'))) return '';
+  if (t.customers().some(c => t.mentions(s, c.name, 'customer') && !t.mentions(facts, c.name, 'customer'))) return '';
+  const nums = new Set(facts.match(/\d+(?:\.\d+)?/g) ?? []);
+  if ((s.match(/\d+(?:\.\d+)?/g) ?? []).some(n => !nums.has(n))) return '';
+  return s;
+}
+
+/** The two generations a chat model provides; LocalModels and ServerModels implement them. */
+export interface ChatModel {
+  name: string;
+  pickTool(system: string, user: string): Promise<string>;
+  write(system: string, user: string): Promise<string>;
+}
+
+export async function answerWithModel(question: string, history: ChatTurn[], s: Snapshot, m: ChatModel): Promise<ChatAnswer> {
+  const t0 = performance.now();
+  const t = new ChatTools(s);
+  const ctx = history.slice(-4).map(h => `${h.role}: ${h.text}`).join('\n');
+  let q: ToolQuery, modelRan = false;
+  try {
+    const raw = await m.pickTool(toolPickerPrompt(s), ctx ? `Conversation so far:\n${ctx}\n\nNew question: ${question}` : question);
+    modelRan = true;
+    q = groundQuery(t, parseModelJson<ToolQuery>(raw), question, history);
+  } catch { q = routeQuestion(question, t); }
+  const facts = renderResult(t, q, runToolQuery(t, q));
+  let lead = '';
+  try { lead = checkLead(await m.write(leadPrompt(s), `Question: ${question}\n\nFacts:\n${facts}`), facts, t); modelRan = true; }
+  catch { /* the facts alone still answer the question */ }
+  const text = lead ? `${lead}\n\n${facts}` : facts;
+  return { text, refs: t.refsIn(text).slice(0, 12), engine: modelRan ? m.name : `Rule engine (${m.name} unavailable)`, toolCalls: [callLabel(q)], latencyMs: Math.round(performance.now() - t0) };
+}
+
 export function answerWithoutModel(question: string, s: Snapshot): ChatAnswer {
   const t = new ChatTools(s);
-  const q = question.toLowerCase();
-  const calls: string[] = [];
-  const done = (text: string, extraRefs: string[] = []): ChatAnswer => ({ text, refs: [...new Set([...t.refsIn(text), ...extraRefs])], engine: 'Rule engine', toolCalls: calls });
-  const ref = question.match(/\b(1-[A-Z0-9]{6}|[A-Z]{2,6}-\d{2,6})\b/i)?.[1];
-  const customer = t.matchCustomer(q);
-  const team = t.matchTeam(q);
-  const person = t.matchPerson(q);
-
-  if (/(block|stuck|waiting for|holding up|go-live|golive)/.test(q) && (customer || ref)) {
-    calls.push(`blockers(${customer?.name ?? ref})`);
-    const r = t.blockers({ customer: customer?.name, id: ref });
-    if (!r.length) return done(`I found no blocked open items for ${customer?.name ?? ref}.`);
-    const parts = r.map(it => `${it.id} "${it.title}" is ${it.status}, ${it.priority}, owned by ${it.assignee}: `
-      + (it.blockedBy.length ? it.blockedBy.map(b => `blocked by ${b.id} "${b.title}" (${b.assignee}, ${b.status}${b.ownerLoad ? `; ${b.assignee.split(' ')[0]} is ${b.ownerLoad}` : ''})`).join('; ')
-        : it.goLive ? 'on the go-live path, no technical blocker recorded' : 'no recorded blocker') + '.');
-    return done(parts.join('\n'));
-  }
-  if (/(overload|too much|capacity|workload|busy|rebalanc|hand.?off)/.test(q)) {
-    calls.push(`workload(${team?.name ?? ''})`);
-    const w = t.workload(team?.name);
-    const over = w.people.filter(p => p.status !== 'ok').sort((a, b) => b.loadPct - a.loadPct);
-    const text = (over.length ? `${over.filter(p => p.status === 'overloaded').length} overloaded, ${over.filter(p => p.status === 'busy').length} busy${team ? ` in ${team.name}` : ''}:\n` + over.slice(0, 6).map(p => `• ${p.name} (${p.team}): ${p.queuedHours} h queued, ${p.loadPct}% of capacity, ${p.atRisk} at risk`).join('\n') : 'Nobody is overloaded right now.')
-      + (w.suggestedHandoffs.length ? `\n\nSuggested hand-offs:\n` + w.suggestedHandoffs.map(h => `• ${h.item}: ${h.from} → ${h.to}`).join('\n') : '');
-    return done(text);
-  }
-  if (/(chang|moved|jump|escalat|what happened|new today|since)/.test(q)) {
-    calls.push('recentChanges()');
-    const c = t.recentChanges(6);
-    if (!c.length) return done('No priority changes detected from email yet. Press "Next email" to let new mail arrive.');
-    return done('Latest priority changes picked up from email:\n' + c.map(x => `• ${x.item}: ${x.from} → ${x.to}. ${x.reason}`).join('\n'));
-  }
-  if (/(sla|breach|overdue|due soon)/.test(q)) {
-    calls.push('slaRisk(24)');
-    const r = t.slaRisk(24).filter(b => !team || b.team === team.name);
-    return done(`${r.length} items breach or are due within 24 h:\n` + r.slice(0, 8).map(line).join('\n'));
-  }
-  if (ref) {
-    calls.push(`getItem(${ref})`);
-    const d = t.getItem(ref);
-    if ('error' in d) return done(d.error!);
-    return done(`${d.id} (${d.system}) "${d.title}"\n${d.status}, ${d.priority}, ${d.customer}, owned by ${d.assignee}, SLA ${d.slaDue}.\n\nWhy it ranks here:\n${(d.scoreFactors ?? []).slice(0, 5).map(f => `• ${f}`).join('\n')}`
-      + (d.recentEmails.length ? `\n\nLatest email: ${d.recentEmails[0].from}: "${d.recentEmails[0].evidence || d.recentEmails[0].summary}"` : ''));
-  }
-  if (person || team || customer || /(top|urgent|priorit|focus|first|important|next)/.test(q)) {
-    const f = { customer: customer?.name, team: person ? undefined : team?.name, assignee: person?.name, limit: 5 };
-    calls.push(`searchItems(${JSON.stringify(f)})`);
-    const r = t.searchItems(f);
-    const who = person?.name ?? customer?.name ?? team?.name ?? 'all teams';
-    return done(r.length ? `Top ${r.length} open items for ${who}, by priority:\n${r.map(line).join('\n')}` : `No open items for ${who}.`);
-  }
-  calls.push(`searchItems({text: "${question}"})`);
-  const r = t.searchItems({ text: question, limit: 5 });
-  return done(r.length ? `Closest matches:\n${r.map(line).join('\n')}` : `I could not find anything for that. Try a ticket id, a customer, a team or a person.`);
+  const q = routeQuestion(question, t);
+  const text = renderResult(t, q, runToolQuery(t, q));
+  return { text, refs: t.refsIn(text), engine: 'Rule engine', toolCalls: [callLabel(q)] };
 }

@@ -5,7 +5,8 @@
 //   - email triage: output forced into the EmailSignals JSON schema by a grammar, so it is always
 //     valid and the model can never "act" on what an email says;
 //   - chat, tool-first: the model only picks a structured query (also grammar-constrained), the app
-//     runs it against the data, and the model phrases the result. Small models are reliable at both.
+//     runs it and writes the facts, and the model adds a one- or two-sentence answer that is checked
+//     against those facts. Small models are reliable at both steps, and cannot invent ticket ids.
 // The 4B model can be switched on for chat on 16 GB machines.
 //
 // ServerModels talks to a company "team hub" (any OpenAI-compatible endpoint: llama.cpp server,
@@ -17,10 +18,11 @@ import type { Email, EmailSignals } from '../core/types.ts';
 import type { AiProvider, Snapshot } from '../core/engine.ts';
 import type { AiStatus } from '../core/api.ts';
 import type { ChatAnswer, ChatTurn } from '../core/chat.ts';
-import { ChatTools, answerWithoutModel } from '../core/chat.ts';
-import { heuristicSignals } from '../core/ai/heuristic.ts';
+import { answerWithModel, answerWithoutModel } from '../core/chat.ts';
+import { heuristicSignals, combineWithRules } from '../core/ai/heuristic.ts';
+import { parseModelJson } from '../core/ai/json.ts';
 import { EMAIL_SIGNALS_SCHEMA, emailSystemPrompt, emailUserPrompt, normalizeSignals } from '../core/ai/schema.ts';
-import { TOOL_QUERY_SCHEMA, toolPickerPrompt, answerPrompt, runToolQuery, type ToolQuery } from '../core/ai/chatPlan.ts';
+import { TOOL_QUERY_SCHEMA } from '../core/ai/chatPlan.ts';
 import { type AiConfig, loadConfig, modelsDir } from './config.ts';
 
 export interface AiBackend {
@@ -33,24 +35,7 @@ export interface AiBackend {
   readonly available: boolean;
 }
 
-/** Parses the first complete JSON object in a model response (tolerates stray text around it). */
-export function parseModelJson<T>(text: string): T {
-  try { return JSON.parse(text) as T; } catch { /* fall through to repair and extraction */ }
-  // Seen with Qwen3.5 when the thinking budget is 0: the opening brace is swallowed with the
-  // closed thought segment and the answer starts at the first key.
-  const t = text.trim();
-  if (t.startsWith('"')) { try { return JSON.parse(`{${t}${t.endsWith('}') ? '' : '}'}`) as T; } catch { /* keep trying */ } }
-  const start = text.indexOf('{');
-  let depth = 0, inStr = false, esc = false;
-  for (let i = Math.max(0, start); start >= 0 && i < text.length; i++) {
-    const c = text[i];
-    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
-    if (c === '"') inStr = true;
-    else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1)) as T;
-  }
-  throw new Error(`Model returned no JSON object: ${JSON.stringify(text.slice(0, 200))}`);
-}
+export { parseModelJson };
 
 const shortName = (f: string) => path.basename(f).replace(/^hf:/, '').replace(/\.gguf$/i, '').replace(/[:_]/g, ' ');
 
@@ -152,7 +137,7 @@ export class LocalModels implements AiBackend {
       const out = await session.prompt(emailUserPrompt(e), {
         grammar: this.grammars.email!, maxTokens: 400, temperature: 0, budgets: { thoughtTokens: 0 }, onToken: t => { tokens += t.length; },
       });
-      return { signals: normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), tokens, ms: performance.now() - t0, raw: out };
+      return { signals: combineWithRules(normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), e, nowIso), tokens, ms: performance.now() - t0, raw: out };
     });
   }
 
@@ -167,22 +152,17 @@ export class LocalModels implements AiBackend {
   async answer(question: string, history: ChatTurn[], snap: Snapshot): Promise<ChatAnswer> {
     return this.exclusive(async () => {
       const { session } = await this.context('chat');
-      const t0 = performance.now();
-      // Step 1: the model picks a tool and its arguments (grammar-constrained JSON).
-      session.setChatHistory([{ type: 'system', text: toolPickerPrompt(snap) }]);
-      const context = history.slice(-4).map(t => `${t.role}: ${t.text}`).join('\n');
-      const raw = await session.prompt(context ? `Conversation so far:\n${context}\n\nNew question: ${question}` : question,
-        { grammar: this.grammars.tool!, maxTokens: 120, temperature: 0, budgets: { thoughtTokens: 0 } });
-      const query = parseModelJson<ToolQuery>(raw);
-      // Step 2: the app runs the query on the data.
-      const tools = new ChatTools(snap);
-      const result = runToolQuery(tools, query);
-      // Step 3: the model phrases the answer from the result only.
-      session.setChatHistory([{ type: 'system', text: answerPrompt(snap) }]);
-      const text = await session.prompt(`Question: ${question}\n\nData (JSON):\n${JSON.stringify(result).slice(0, 6000)}`,
-        { maxTokens: 350, temperature: 0.2, budgets: { thoughtTokens: 0 } });
-      return { text: text.trim(), refs: tools.refsIn(text + JSON.stringify(result)).slice(0, 12), engine: `Local ${shortName(this.chatFile()!)}`,
-        toolCalls: [`${query.tool}(${JSON.stringify(query.args ?? {})})`], latencyMs: Math.round(performance.now() - t0) };
+      const run = (system: string, user: string, opts: Parameters<Session['prompt']>[1]) => {
+        session.setChatHistory([{ type: 'system', text: system }]);
+        return session.prompt(user, opts);
+      };
+      return answerWithModel(question, history, snap, {
+        name: `Local ${shortName(this.chatFile()!)}`,
+        // Step 1: pick one read-only query (grammar-constrained JSON). Step 2, in answerWithModel: the app runs
+        // it and writes the facts. Step 3: a short answer on top, checked against those facts.
+        pickTool: (system, user) => run(system, user, { grammar: this.grammars.tool!, maxTokens: 120, temperature: 0, budgets: { thoughtTokens: 0 } }),
+        write: (system, user) => run(system, user, { maxTokens: 90, temperature: 0, budgets: { thoughtTokens: 0 } }),
+      });
     });
   }
 
@@ -235,23 +215,18 @@ export class ServerModels implements AiBackend {
   async extract(e: Email, nowIso: string) {
     const t0 = performance.now();
     const out = await this.complete([{ role: 'system', content: emailSystemPrompt(nowIso) }, { role: 'user', content: emailUserPrompt(e) }], EMAIL_SIGNALS_SCHEMA);
-    return { signals: normalizeSignals(parseModelJson(out)), tokens: 0, ms: performance.now() - t0 };
+    return { signals: combineWithRules(normalizeSignals(parseModelJson(out)), e, nowIso), tokens: 0, ms: performance.now() - t0 };
   }
 
   provider(): AiProvider { return { name: `Team hub ${this.config.server.model}`, extract: async (e, now) => (await this.extract(e, now)).signals }; }
 
   async answer(question: string, history: ChatTurn[], snap: Snapshot): Promise<ChatAnswer> {
-    const t0 = performance.now();
     try {
-      const ctx = history.slice(-4).map(t => `${t.role}: ${t.text}`).join('\n');
-      const query = parseModelJson<ToolQuery>(await this.complete([{ role: 'system', content: toolPickerPrompt(snap) },
-        { role: 'user', content: ctx ? `Conversation so far:\n${ctx}\n\nNew question: ${question}` : question }], TOOL_QUERY_SCHEMA, 120)) as ToolQuery;
-      const tools = new ChatTools(snap);
-      const result = runToolQuery(tools, query);
-      const text = await this.complete([{ role: 'system', content: answerPrompt(snap) },
-        { role: 'user', content: `Question: ${question}\n\nData (JSON):\n${JSON.stringify(result).slice(0, 6000)}` }], undefined, 350);
-      return { text: text.trim(), refs: tools.refsIn(text + JSON.stringify(result)).slice(0, 12), engine: `Team hub ${this.config.server.model}`,
-        toolCalls: [`${query.tool}(${JSON.stringify(query.args ?? {})})`], latencyMs: Math.round(performance.now() - t0) };
+      return await answerWithModel(question, history, snap, {
+        name: `Team hub ${this.config.server.model}`,
+        pickTool: (system, user) => this.complete([{ role: 'system', content: system }, { role: 'user', content: user }], TOOL_QUERY_SCHEMA, 120),
+        write: (system, user) => this.complete([{ role: 'system', content: system }, { role: 'user', content: user }], undefined, 120),
+      });
     } catch {
       return { ...answerWithoutModel(question, snap), engine: 'Rule engine (team hub unreachable)' };
     }

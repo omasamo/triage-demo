@@ -12,7 +12,15 @@ export function Settings() {
   const [ds, setDs] = useState<DesktopSettings | null>(null);
   const [draft, setDraft] = useState<AiConfig | null>(null);
   const [progress, setProgress] = useState<string>('');
+  const [dl, setDl] = useState<string>('');
   useEffect(() => { void api.settings?.().then(d => { setDs(d); setDraft(d.config); }); }, [api]);
+  useEffect(() => api.on?.('download-progress', p => { const x = p as { model: string; downloadedMb: number; totalMb: number }; setDl(`Downloading ${x.model === 'small' ? 'Qwen3.5-2B' : 'Qwen3.5-4B'}: ${x.downloadedMb} / ${x.totalMb} MB`); }), [api]);
+  const download = async (which: ('small' | 'large')[]) => {
+    if (!api.downloadModels) return;
+    setDl('Starting download…');
+    try { await api.downloadModels(which); setDl('Model installed. Loading…'); setTimeout(() => void refreshAi(), 2000); }
+    catch (e) { setDl(`Download failed: ${(e as Error).message}`); }
+  };
   useEffect(() => api.on?.('reanalyse-progress', p => { const x = p as { done: number; total: number }; setProgress(`${x.done} / ${x.total}`); }), [api]);
 
   const save = async () => {
@@ -53,6 +61,18 @@ export function Settings() {
                   <div><b>{t}</b><div className="small muted">{d}</div></div>
                 </label>
               ))}
+              {(draft.mode === 'auto' || draft.mode === 'local') && !ai?.emailModel && (
+                <div className="banner info">
+                  <Cpu size={16} />
+                  <div className="small grow">No local model installed yet. Download Qwen3.5-2B (about 1.5 GB, one time) to switch from the rule engine to real AI.
+                    <div className="row" style={{ marginTop: 8 }}>
+                      <button className="btn primary sm" onClick={() => void download(['small'])}>Download Qwen3.5-2B</button>
+                      {ds.hardware.recommendedChat === 'large' && <button className="btn sm" onClick={() => void download(['small', 'large'])}>Download 2B + 4B (about 4.5 GB)</button>}
+                    </div>
+                    {dl && <div style={{ marginTop: 6 }}>{dl}</div>}
+                  </div>
+                </div>
+              )}
               {(draft.mode === 'auto' || draft.mode === 'local') && (
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Chat model</div>

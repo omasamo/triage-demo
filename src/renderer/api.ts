@@ -34,10 +34,11 @@ class IpcApi implements TriageApi {
   settings = () => this.c<DesktopSettings>('settings');
   saveSettings = (c: AiConfig) => this.c<DesktopSettings>('saveSettings', c);
   reanalyse = () => this.c<{ done: number; error?: string }>('reanalyse');
+  downloadModels = (which: ('small' | 'large')[]) => this.c<{ ok: boolean }>('downloadModels', which);
   on = (ch: string, cb: (p: unknown) => void) => this.b.on(ch, cb);
 }
 
-export type ClientApi = TriageApi & Partial<Pick<IpcApi, 'settings' | 'saveSettings' | 'reanalyse' | 'on'>>;
+export type ClientApi = TriageApi & Partial<Pick<IpcApi, 'settings' | 'saveSettings' | 'reanalyse' | 'downloadModels' | 'on'>>;
 
 export async function createApi(): Promise<ClientApi> {
   if (window.triage) return new IpcApi(window.triage);

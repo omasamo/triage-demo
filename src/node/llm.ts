@@ -83,9 +83,14 @@ export class LocalModels implements AiBackend {
     return this.available;
   }
 
-  async pull(which: ('small' | 'large')[] = ['small']) {
+  async pull(which: ('small' | 'large')[] = ['small'], onProgress?: (p: { model: string; downloadedMb: number; totalMb: number }) => void) {
     const { resolveModelFile } = await this.nlc();
-    for (const w of which) await resolveModelFile(this.config.models[w], { directory: this.dir, cli: true });
+    for (const w of which) {
+      await resolveModelFile(this.config.models[w], {
+        directory: this.dir, cli: !onProgress,
+        onProgress: onProgress && (st => onProgress({ model: w, downloadedMb: Math.round(st.downloadedSize / 2 ** 20), totalMb: Math.round(st.totalSize / 2 ** 20) })),
+      });
+    }
     await this.locate();
   }
 

@@ -8,7 +8,7 @@ import type { Dataset } from '../core/types.ts';
 import { Engine, heuristicProvider } from '../core/engine.ts';
 import { LocalApi } from '../core/api.ts';
 import { answerWithoutModel } from '../core/chat.ts';
-import { createBackend, type AiBackend } from '../node/llm.ts';
+import { createBackend, LocalModels, type AiBackend } from '../node/llm.ts';
 import { hardwareInfo, loadConfig, saveConfig, modelsDir, type AiConfig } from '../node/config.ts';
 import { openStore } from './store.ts';
 
@@ -72,6 +72,15 @@ const methods = {
     }
     await api.reset();
     return { done, engine: engine.ai.name };
+  },
+  /** Downloads the local model(s) from inside the app, so installer users need no command line. */
+  downloadModels: async (which: ('small' | 'large')[]) => {
+    const local = backend instanceof LocalModels ? backend : new LocalModels(config);
+    let last = 0;
+    await local.pull(which, p => { if (Date.now() - last > 400) { last = Date.now(); win?.webContents.send('download-progress', p); } });
+    await backend.dispose(); backend = createBackend(config);
+    void startAi();
+    return { ok: true };
   },
   openExternal: (url: string) => { if (/^https:\/\//.test(url)) void shell.openExternal(url); },
 } as const;

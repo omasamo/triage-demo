@@ -11,7 +11,7 @@ This repository is a pitch demo on synthetic data: 3 teams, 12 people, 152 ticke
 | Where | How |
 |---|---|
 | **Any browser** | Open the web demo: `https://omasamo.github.io/triage-demo/` (published by the *Web demo* workflow). It runs the rule engine in the browser, no install needed. |
-| **Mac or Windows app** | Download the installer from [Releases](https://github.com/omasamo/triage-demo/releases), or from the latest *Desktop installers* run in the Actions tab. The build is unsigned: on Mac, right-click the app and choose **Open** the first time; on Windows, choose **More info → Run anyway**. |
+| **Mac or Windows app** | Download the installer from [Releases](https://github.com/omasamo/triage-demo/releases), or from the latest *Desktop installers* run in the Actions tab. The build is unsigned: on Mac, right-click the app and choose **Open** the first time; on Windows, choose **More info → Run anyway**. Then open **Settings → Download Qwen3.5-2B** (1.5 GB, once) to switch from the rule engine to the local model. |
 | **From source** | Node 22+, then `npm install`, `npm run models:pull` (downloads Qwen3.5-2B, about 1.5 GB) and `npm start`. Without the model the app still runs, on the rule engine. |
 
 ## Five-minute demo script

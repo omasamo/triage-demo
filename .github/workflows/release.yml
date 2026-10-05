@@ -41,7 +41,7 @@ jobs:
           name: Triage Brain demo v${{ steps.v.outputs.version }}
           body: |
             Unsigned demo installers. Mac: right-click the app and choose Open the first time. Windows: More info, then Run anyway.
-            The app runs on the built-in rule engine until a model is installed; see the README for `npm run models:pull` or put the GGUF file in ~/.triage-demo/models.
+            The app starts on the built-in rule engine. Open Settings and click Download Qwen3.5-2B (about 1.5 GB, once) to run the local model.
           files: |
             release/*.dmg
             release/*.exe

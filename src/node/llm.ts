@@ -25,7 +25,7 @@ import { type AiConfig, loadConfig, modelsDir } from './config.ts';
 
 export interface AiBackend {
   provider(): AiProvider;
-  extract(e: Email, nowIso: string): Promise<{ signals: EmailSignals; tokens: number; ms: number }>;
+  extract(e: Email, nowIso: string): Promise<{ signals: EmailSignals; tokens: number; ms: number; raw?: string }>;
   answer(question: string, history: ChatTurn[], snap: Snapshot): Promise<ChatAnswer>;
   status(): Promise<AiStatus>;
   warmup(): Promise<void>;
@@ -35,7 +35,11 @@ export interface AiBackend {
 
 /** Parses the first complete JSON object in a model response (tolerates stray text around it). */
 export function parseModelJson<T>(text: string): T {
-  try { return JSON.parse(text) as T; } catch { /* fall through to extraction */ }
+  try { return JSON.parse(text) as T; } catch { /* fall through to repair and extraction */ }
+  // Seen with Qwen3.5 when the thinking budget is 0: the opening brace is swallowed with the
+  // closed thought segment and the answer starts at the first key.
+  const t = text.trim();
+  if (t.startsWith('"')) { try { return JSON.parse(`{${t}${t.endsWith('}') ? '' : '}'}`) as T; } catch { /* keep trying */ } }
   const start = text.indexOf('{');
   let depth = 0, inStr = false, esc = false;
   for (let i = Math.max(0, start); start >= 0 && i < text.length; i++) {
@@ -148,7 +152,7 @@ export class LocalModels implements AiBackend {
       const out = await session.prompt(emailUserPrompt(e), {
         grammar: this.grammars.email!, maxTokens: 400, temperature: 0, budgets: { thoughtTokens: 0 }, onToken: t => { tokens += t.length; },
       });
-      return { signals: normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), tokens, ms: performance.now() - t0 };
+      return { signals: normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), tokens, ms: performance.now() - t0, raw: out };
     });
   }
 

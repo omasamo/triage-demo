@@ -83,5 +83,6 @@ test('model JSON parsing tolerates text around the object', async () => {
   const { parseModelJson } = await import('../src/node/llm.ts');
   assert.deepEqual(parseModelJson('{"a":1}'), { a: 1 });
   assert.deepEqual(parseModelJson('<think>\n</think>\n{"a":"x}y","b":{"c":2}} trailing'), { a: 'x}y', b: { c: 2 } });
+  assert.deepEqual(parseModelJson('\n    "ticketRefs": [],\n    "urgency": "low"\n}'), { ticketRefs: [], urgency: 'low' });
   assert.throws(() => parseModelJson('no json here'));
 });

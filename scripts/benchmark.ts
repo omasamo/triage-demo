@@ -37,6 +37,7 @@ const limit = Number(arg('limit', useModel ? '80' : String(all.length)));
 const sample: Email[] = [...interesting, ...routine.filter((_, i) => i % Math.max(1, Math.floor(routine.length / Math.max(1, limit - interesting.length))) === 0)].slice(0, Math.max(limit, interesting.length));
 
 const failures: string[] = [];
+let rawShown = 0;
 type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; linked: string | null };
 async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: string): Promise<Row[]> {
   const linker = new Linker(data.items, data.customers);
@@ -45,7 +46,11 @@ async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: str
     const t = truthOf.get(e.id)!;
     let s: EmailSignals, ms: number, tokens = 0;
     if (useModel) {
-      try { ({ signals: s, ms, tokens } = await backend!.extract(e, data.now)); }
+      try {
+        const r = await backend!.extract(e, data.now);
+        ({ signals: s, ms, tokens } = r);
+        if (rawShown++ < 2) console.log(`  raw model output for ${e.id}: ${JSON.stringify(r.raw ?? '').slice(0, 400)}`);
+      }
       catch (err) {
         // Count it as a schema failure and score the rule engine's answer for this email.
         if (!failures.length) console.log(`  first model failure on ${e.id}: ${(err as Error).message}`);

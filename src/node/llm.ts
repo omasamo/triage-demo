@@ -18,6 +18,7 @@ import type { AiProvider, Snapshot } from '../core/engine.ts';
 import type { AiStatus } from '../core/api.ts';
 import type { ChatAnswer, ChatTurn } from '../core/chat.ts';
 import { ChatTools, answerWithoutModel } from '../core/chat.ts';
+import { heuristicSignals } from '../core/ai/heuristic.ts';
 import { EMAIL_SIGNALS_SCHEMA, emailSystemPrompt, emailUserPrompt, normalizeSignals } from '../core/ai/schema.ts';
 import { TOOL_QUERY_SCHEMA, toolPickerPrompt, answerPrompt, runToolQuery, type ToolQuery } from '../core/ai/chatPlan.ts';
 import { type AiConfig, loadConfig, modelsDir } from './config.ts';
@@ -30,6 +31,21 @@ export interface AiBackend {
   warmup(): Promise<void>;
   dispose(): Promise<void>;
   readonly available: boolean;
+}
+
+/** Parses the first complete JSON object in a model response (tolerates stray text around it). */
+export function parseModelJson<T>(text: string): T {
+  try { return JSON.parse(text) as T; } catch { /* fall through to extraction */ }
+  const start = text.indexOf('{');
+  let depth = 0, inStr = false, esc = false;
+  for (let i = Math.max(0, start); start >= 0 && i < text.length; i++) {
+    const c = text[i];
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1)) as T;
+  }
+  throw new Error(`Model returned no JSON object: ${JSON.stringify(text.slice(0, 200))}`);
 }
 
 const shortName = (f: string) => path.basename(f).replace(/^hf:/, '').replace(/\.gguf$/i, '').replace(/[:_]/g, ' ');
@@ -127,12 +143,16 @@ export class LocalModels implements AiBackend {
       const out = await session.prompt(emailUserPrompt(e), {
         grammar: this.grammars.email!, maxTokens: 400, temperature: 0, budgets: { thoughtTokens: 0 }, onToken: t => { tokens += t.length; },
       });
-      return { signals: normalizeSignals(this.grammars.email!.parse(out) as Partial<EmailSignals>), tokens, ms: performance.now() - t0 };
+      return { signals: normalizeSignals(parseModelJson<Partial<EmailSignals>>(out)), tokens, ms: performance.now() - t0 };
     });
   }
 
   provider(): AiProvider {
-    return { name: `Local ${shortName(this.emailFile() ?? this.config.models.small)}`, extract: async (e, now) => (await this.extract(e, now)).signals };
+    return {
+      name: `Local ${shortName(this.emailFile() ?? this.config.models.small)}`,
+      // A malformed answer never blocks the mailbox: that one email falls back to the rule engine.
+      extract: async (e, now) => (await this.extract(e, now).catch(err => { console.warn(`[ai] ${e.id}: ${(err as Error).message}`); return { signals: heuristicSignals(e, now) }; })).signals,
+    };
   }
 
   async answer(question: string, history: ChatTurn[], snap: Snapshot): Promise<ChatAnswer> {
@@ -144,7 +164,7 @@ export class LocalModels implements AiBackend {
       const context = history.slice(-4).map(t => `${t.role}: ${t.text}`).join('\n');
       const raw = await session.prompt(context ? `Conversation so far:\n${context}\n\nNew question: ${question}` : question,
         { grammar: this.grammars.tool!, maxTokens: 120, temperature: 0, budgets: { thoughtTokens: 0 } });
-      const query = this.grammars.tool!.parse(raw) as ToolQuery;
+      const query = parseModelJson<ToolQuery>(raw);
       // Step 2: the app runs the query on the data.
       const tools = new ChatTools(snap);
       const result = runToolQuery(tools, query);
@@ -206,7 +226,7 @@ export class ServerModels implements AiBackend {
   async extract(e: Email, nowIso: string) {
     const t0 = performance.now();
     const out = await this.complete([{ role: 'system', content: emailSystemPrompt(nowIso) }, { role: 'user', content: emailUserPrompt(e) }], EMAIL_SIGNALS_SCHEMA);
-    return { signals: normalizeSignals(JSON.parse(out)), tokens: 0, ms: performance.now() - t0 };
+    return { signals: normalizeSignals(parseModelJson(out)), tokens: 0, ms: performance.now() - t0 };
   }
 
   provider(): AiProvider { return { name: `Team hub ${this.config.server.model}`, extract: async (e, now) => (await this.extract(e, now)).signals }; }
@@ -215,7 +235,7 @@ export class ServerModels implements AiBackend {
     const t0 = performance.now();
     try {
       const ctx = history.slice(-4).map(t => `${t.role}: ${t.text}`).join('\n');
-      const query = JSON.parse(await this.complete([{ role: 'system', content: toolPickerPrompt(snap) },
+      const query = parseModelJson<ToolQuery>(await this.complete([{ role: 'system', content: toolPickerPrompt(snap) },
         { role: 'user', content: ctx ? `Conversation so far:\n${ctx}\n\nNew question: ${question}` : question }], TOOL_QUERY_SCHEMA, 120)) as ToolQuery;
       const tools = new ChatTools(snap);
       const result = runToolQuery(tools, query);

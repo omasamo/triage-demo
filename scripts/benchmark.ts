@@ -36,6 +36,7 @@ const routine = all.filter(e => !interesting.includes(e));
 const limit = Number(arg('limit', useModel ? '80' : String(all.length)));
 const sample: Email[] = [...interesting, ...routine.filter((_, i) => i % Math.max(1, Math.floor(routine.length / Math.max(1, limit - interesting.length))) === 0)].slice(0, Math.max(limit, interesting.length));
 
+const failures: string[] = [];
 type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; linked: string | null };
 async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: string): Promise<Row[]> {
   const linker = new Linker(data.items, data.customers);
@@ -43,7 +44,14 @@ async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: str
   for (const [i, e] of [...emails].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)).entries()) {
     const t = truthOf.get(e.id)!;
     let s: EmailSignals, ms: number, tokens = 0;
-    if (useModel) ({ signals: s, ms, tokens } = await backend!.extract(e, data.now));
+    if (useModel) {
+      try { ({ signals: s, ms, tokens } = await backend!.extract(e, data.now)); }
+      catch (err) {
+        // Count it as a schema failure and score the rule engine's answer for this email.
+        if (!failures.length) console.log(`  first model failure on ${e.id}: ${(err as Error).message}`);
+        failures.push(e.id); s = heuristicSignals(e, data.now); ms = 0;
+      }
+    }
     else { const a = performance.now(); s = heuristicSignals(e, data.now); ms = performance.now() - a; }
     const link = s.suspiciousInstructions ? { itemId: null, method: 'none' as const, confidence: 0 } : linker.link(e, s.ticketRefs);
     linker.learn(e, link);
@@ -102,6 +110,7 @@ const hw = hardwareInfo();
 const result = {
   date: new Date().toISOString(), machine: os.hostname(), ...hw,
   engine: useModel ? status?.emailModel : 'rule engine', device: status?.device ?? 'CPU', chatModel: useModel ? status?.chatModel : undefined,
+  schemaFailures: failures.length,
   synthetic: metrics(synthRows),
   holdout: metrics(holdRows),
   speed: { secondsPerEmail: Math.round(genMs / allRows.length / 10) / 100, tokensPerSecond: tokens ? Math.round(tokens / (genMs / 1000)) : undefined, totalSeconds: Math.round(totalMs / 100) / 10 },
@@ -116,6 +125,7 @@ const row = (m: ReturnType<typeof metrics>) => ({
   'De-escalations found %': m.deescalation.found, 'Prompt injections blocked %': m.injection.blocked,
 });
 console.table({ [`Synthetic set (${result.synthetic.emails})`]: row(result.synthetic), [`Hold-out set (${result.holdout.emails})`]: row(result.holdout) });
+if (failures.length) console.log(`Model output could not be parsed for ${failures.length} emails (rule engine used for those).`);
 console.log(`Speed: ${result.speed.secondsPerEmail} s per email${result.speed.tokensPerSecond ? `, ${result.speed.tokensPerSecond} tokens/s` : ''}`);
 for (const c of chat) console.log(`Chat "${c.q}" → ${(c.ms / 1000).toFixed(1)} s via ${c.tool}\n   ${c.answer.replace(/\n/g, ' ')}`);
 if (result.holdout.mistakes.length) console.log(`\nHold-out mistakes:\n${result.holdout.mistakes.map(m => `  ${m}`).join('\n')}`);

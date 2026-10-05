@@ -78,3 +78,10 @@ test('without a model file the local backend reports no-model instead of failing
   assert.equal(await m.locate(), false);
   assert.equal((await m.status()).mode, 'rules');
 });
+
+test('model JSON parsing tolerates text around the object', async () => {
+  const { parseModelJson } = await import('../src/node/llm.ts');
+  assert.deepEqual(parseModelJson('{"a":1}'), { a: 1 });
+  assert.deepEqual(parseModelJson('<think>\n</think>\n{"a":"x}y","b":{"c":2}} trailing'), { a: 'x}y', b: { c: 2 } });
+  assert.throws(() => parseModelJson('no json here'));
+});

@@ -70,7 +70,7 @@ export function Inbox() {
                 <div className="row" style={{ marginBottom: 8 }}><Sparkles size={16} color="#8764b8" /><h3 style={{ margin: 0, fontSize: 14 }}>What the AI extracted</h3><span className="grow" /><span className="small muted">{p.engine}{p.latencyMs ? ` · ${(p.latencyMs / 1000).toFixed(1)} s` : ''}</span></div>
                 <div className="signal-grid">
                   <Signal k="Escalation" v={p.signals.isEscalation ? `Yes (${p.signals.urgency})` : p.signals.isDeescalation ? 'De-escalation' : 'No'} />
-                  <Signal k="Deadline" v={p.signals.deadline ? fmtDate(p.signals.deadline) : 'None'} />
+                  <Signal k="Deadline" v={p.signals.deadline ? fmtDate(p.signals.deadline) : 'None'} note={p.signals.deadline && p.signals.deadlineText ? `from "${p.signals.deadlineText}"` : undefined} />
                   <Signal k="Customer impact" v={p.signals.customerImpact.replace('_', ' ')} />
                   <Signal k="Sentiment" v={p.signals.sentiment} />
                   <Signal k="Executive involved" v={p.signals.executiveInvolved ? 'Yes' : 'No'} />
@@ -99,4 +99,6 @@ export function Inbox() {
   );
 }
 
-const Signal = ({ k, v }: { k: string; v: string }) => <div className="signal"><div className="k">{k}</div><div className="v" style={{ textTransform: 'capitalize' }}>{v}</div></div>;
+const Signal = ({ k, v, note }: { k: string; v: string; note?: string }) => (
+  <div className="signal"><div className="k">{k}</div><div className="v" style={{ textTransform: 'capitalize' }}>{v}</div>{note && <div className="small muted">{note}</div>}</div>
+);

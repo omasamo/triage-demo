@@ -145,17 +145,28 @@ test('emails read ahead are not read twice and keep the model time', async () =>
   assert.equal(calls.length, 3);
 });
 
-test('deadlines the model describes are turned into dates from the day the email was sent', async () => {
-  const { resolveDeadline } = await import('../src/core/ai/schema.ts');
-  const mon = '2026-10-05T13:05:00.000Z';                        // a Monday
-  const r = (when: string, extra: Record<string, string> = {}) => resolveDeadline({ when, date: '', weekday: '', time: '', ...extra } as never, mon);
-  assert.equal(r('weekday', { weekday: 'wednesday' }), '2026-10-07T17:00:00.000Z');
-  assert.equal(r('weekday', { weekday: 'monday' }), '2026-10-12T17:00:00.000Z');
-  assert.equal(r('next_week_weekday', { weekday: 'friday' }), '2026-10-16T17:00:00.000Z');
-  assert.equal(r('tomorrow', { time: '10:00' }), '2026-10-06T10:00:00.000Z');
-  assert.equal(r('end_of_week'), '2026-10-09T17:00:00.000Z');
-  assert.equal(r('next_week'), '2026-10-12T09:00:00.000Z');
-  assert.equal(r('end_of_month'), '2026-10-31T17:00:00.000Z');
-  assert.equal(r('date', { date: '2025-10-30' }), '2026-10-30T17:00:00.000Z');   // wrong year from the model
-  assert.equal(resolveDeadline(null, mon), null);
+test('deadline words in several languages are turned into dates from the day the email was sent', async () => {
+  const { resolveDeadline, normalizeSignals } = await import('../src/core/ai/schema.ts');
+  const tue = '2026-10-06T08:00:00.000Z';                        // a Tuesday
+  const r = (english: string, quote = '') => resolveDeadline({ quote, english }, tue);
+  assert.equal(r('by Friday', 'do pátku'), '2026-10-09T17:00:00.000Z');
+  assert.equal(r('', 'bis morgen früh'), '2026-10-07T09:00:00.000Z');          // translation missing: the original words still work
+  assert.equal(r('by Monday'), '2026-10-12T17:00:00.000Z');
+  assert.equal(r('next Friday'), '2026-10-16T17:00:00.000Z');
+  assert.equal(r('by tomorrow 12:00'), '2026-10-07T12:00:00.000Z');
+  assert.equal(r('this week', 'esta semana'), '2026-10-09T17:00:00.000Z');
+  assert.equal(r('next week'), '2026-10-12T09:00:00.000Z');
+  assert.equal(r('on 14 October'), '2026-10-14T17:00:00.000Z');
+  assert.equal(r('', 'do 14. října'), '2026-10-14T17:00:00.000Z');
+  assert.equal(r('by Saturday 10 October'), '2026-10-10T17:00:00.000Z');       // a written date wins over the weekday
+  assert.equal(r('5 January'), '2027-01-05T17:00:00.000Z');                    // a date that has passed this year means next year
+  assert.equal(r('end of month'), '2026-10-31T17:00:00.000Z');
+  assert.equal(r('within 3 business days'), '2026-10-09T17:00:00.000Z');
+  assert.equal(r('by 3 pm'), '2026-10-06T15:00:00.000Z');
+  assert.equal(r('as soon as possible'), null);
+  assert.equal(resolveDeadline('2026-10-20T10:00:00Z', tue), '2026-10-20T10:00:00.000Z');   // a team hub model may answer ISO
+  assert.equal(resolveDeadline(null, tue), null);
+  const s = normalizeSignals({ deadline: { quote: 'do pátku', english: 'by Friday' } }, tue);
+  assert.equal(s.deadline, '2026-10-09T17:00:00.000Z');
+  assert.equal(s.deadlineText, 'do pátku');
 });

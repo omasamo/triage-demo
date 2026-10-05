@@ -132,7 +132,7 @@ export class LocalModels implements AiBackend {
   async extract(e: Email, nowIso: string) {
     return this.exclusive(async () => {
       const { session } = await this.context('email');
-      session.setChatHistory([{ type: 'system', text: emailSystemPrompt(nowIso) }]);
+      session.setChatHistory([{ type: 'system', text: emailSystemPrompt() }]);
       const t0 = performance.now();
       let tokens = 0, firstAt = 0;
       const out = await session.prompt(emailUserPrompt(e), {
@@ -222,7 +222,7 @@ export class ServerModels implements AiBackend {
 
   async extract(e: Email, nowIso: string) {
     const t0 = performance.now();
-    const out = await this.complete([{ role: 'system', content: emailSystemPrompt(nowIso) }, { role: 'user', content: emailUserPrompt(e) }], EMAIL_SIGNALS_SCHEMA);
+    const out = await this.complete([{ role: 'system', content: emailSystemPrompt() }, { role: 'user', content: emailUserPrompt(e) }], EMAIL_SIGNALS_SCHEMA);
     return { signals: combineWithRules(normalizeSignals(parseModelJson<Partial<ModelSignals>>(out), e.receivedAt), e, nowIso), tokens: 0, ms: performance.now() - t0 };
   }
 

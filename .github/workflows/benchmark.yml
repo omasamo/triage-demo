@@ -8,12 +8,18 @@ on:
       limit:
         description: Synthetic emails to classify (both hold-out sets are always included)
         default: '40'
+      focus:
+        description: Leave empty for the full run, or "deadlines" for a quick run on emails with a deadline only
+        default: ''
+      runners:
+        description: both, windows or mac
+        default: both
 jobs:
   bench:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: ${{ fromJSON(inputs.runners == 'windows' && '["windows-latest"]' || inputs.runners == 'mac' && '["macos-latest"]' || '["macos-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -29,7 +35,7 @@ jobs:
       - run: npm run models:pull
       - name: Benchmark
         shell: bash
-        run: BENCH_NAME=${{ matrix.os }} npm run benchmark -- --limit ${{ inputs.limit }} && cat bench-results/*.md >> "$GITHUB_STEP_SUMMARY"
+        run: BENCH_NAME=${{ matrix.os }} npm run benchmark -- --limit ${{ inputs.limit }} ${{ inputs.focus && format('--focus {0}', inputs.focus) || '' }} && cat bench-results/*.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

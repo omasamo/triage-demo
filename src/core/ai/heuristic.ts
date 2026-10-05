@@ -102,7 +102,7 @@ export function combineWithRules(model: EmailSignals, e: Email, nowIso: string):
   const text = `${e.subject}\n${e.body}`.toUpperCase();
   const ticketRefs = [...new Set([...rules.ticketRefs, ...model.ticketRefs.map(r => r.trim().toUpperCase()).filter(r => REF_SHAPE.test(r) && text.includes(r))])];
   if (model.suspiciousInstructions || rules.suspiciousInstructions) {
-    return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null,
+    return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null, deadlineText: undefined,
       evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
   }
   return { ...model, ticketRefs, deadline: model.deadline ?? rules.deadline, isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };

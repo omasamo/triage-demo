@@ -82,6 +82,7 @@ export interface EmailSignals {
   isDeescalation: boolean;
   urgency: Urgency;
   deadline: string | null;  // ISO date-time or null
+  deadlineText?: string;    // the email's own words for the deadline, when the model quoted them
   customerImpact: Impact;
   sentiment: Sentiment;
   executiveInvolved: boolean;

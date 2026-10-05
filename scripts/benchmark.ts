@@ -5,12 +5,14 @@
 //   npm run benchmark -- --engine rules
 //   npm run benchmark -- --limit 40   # quicker run
 //   npm run benchmark -- --chat large # also time the 4B chat model
+//   npm run benchmark -- --focus deadlines  # only emails with a deadline (synthetic and hold-out A), with the model's words
 //
 // Results are printed and saved to bench-results/<machine>.json.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import os from 'node:os';
 import type { Dataset, Email, EmailSignals, EmailTruth } from '../src/core/types.ts';
 import { heuristicSignals } from '../src/core/ai/heuristic.ts';
+import { parseModelJson } from '../src/core/ai/json.ts';
 import { Linker } from '../src/core/linker.ts';
 import { Engine } from '../src/core/engine.ts';
 import { createBackend, LocalModels } from '../src/node/llm.ts';
@@ -35,22 +37,26 @@ const all = [...data.emails, ...data.incoming];
 const interesting = all.filter(e => truth.get(e.id)!.kind !== 'info' && truth.get(e.id)!.kind !== 'noise');
 const routine = all.filter(e => !interesting.includes(e));
 const limit = Number(arg('limit', useModel ? '80' : String(all.length)));
-const sample: Email[] = [...interesting, ...routine.filter((_, i) => i % Math.max(1, Math.floor(routine.length / Math.max(1, limit - interesting.length))) === 0)].slice(0, Math.max(limit, interesting.length));
+const focus = arg('focus');
+const withDeadline = (e: Email, t: Map<string, EmailTruth>) => !!t.get(e.id)?.deadline;
+const sample: Email[] = focus === 'deadlines' ? all.filter(e => withDeadline(e, truth))
+  : [...interesting, ...routine.filter((_, i) => i % Math.max(1, Math.floor(routine.length / Math.max(1, limit - interesting.length))) === 0)].slice(0, Math.max(limit, interesting.length));
 
 const failures: string[] = [];
 let rawShown = 0;
-type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; promptMs: number; linked: string | null };
+type Row = { e: Email; t: EmailTruth; s: EmailSignals; ms: number; tokens: number; promptMs: number; linked: string | null; raw?: string };
 async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: string): Promise<Row[]> {
   const linker = new Linker(data.items, data.customers);
   const rows: Row[] = [];
   for (const [i, e] of [...emails].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)).entries()) {
     const t = truthOf.get(e.id)!;
-    let s: EmailSignals, ms: number, tokens = 0, promptMs = 0;
+    let s: EmailSignals, ms: number, tokens = 0, promptMs = 0, raw: string | undefined;
     if (useModel) {
       try {
         const r = await backend!.extract(e, data.now);
         ({ signals: s, ms, tokens } = r);
         promptMs = r.promptMs ?? 0;
+        raw = r.raw;
         if (rawShown++ < 2) console.log(`  raw model output for ${e.id}: ${JSON.stringify(r.raw ?? '').slice(0, 400)}`);
       }
       catch (err) {
@@ -62,14 +68,17 @@ async function run(emails: Email[], truthOf: Map<string, EmailTruth>, label: str
     else { const a = performance.now(); s = heuristicSignals(e, data.now); ms = performance.now() - a; }
     const link = s.suspiciousInstructions ? { itemId: null, method: 'none' as const, confidence: 0 } : linker.link(e, s.ticketRefs);
     linker.learn(e, link);
-    rows.push({ e, t, s, ms, tokens, promptMs, linked: link.itemId });
+    rows.push({ e, t, s, ms, tokens, promptMs, linked: link.itemId, raw });
     if (useModel && (i + 1) % 10 === 0) console.log(`  ${label}: ${i + 1}/${emails.length} emails, ${(ms / 1000).toFixed(1)} s for the last one`);
   }
   return rows;
 }
 
 const pct = (a: number, b: number) => b ? Math.round((a / b) * 1000) / 10 : null;
-function metrics(rows: Row[]) {
+/** What the model wrote for the deadline, to see why a date came out wrong. */
+const modelDeadline = (raw?: string) => { try { return JSON.stringify(parseModelJson<{ deadline?: unknown }>(raw ?? '').deadline ?? null); } catch { return 'unreadable'; } };
+// Hold-out B stays unseen: its mistakes are listed by subject only, never with the model's words.
+function metrics(rows: Row[], explain = false) {
   const isEsc = (t: EmailTruth) => t.kind === 'escalation';
   const tp = rows.filter(r => isEsc(r.t) && r.s.isEscalation).length;
   const fp = rows.filter(r => !isEsc(r.t) && r.s.isEscalation).length;
@@ -89,7 +98,7 @@ function metrics(rows: Row[]) {
     mistakes: [
       ...rows.filter(r => isEsc(r.t) !== r.s.isEscalation).map(r => `${isEsc(r.t) ? 'missed escalation' : 'false alarm'}: ${r.e.subject}`),
       ...dlTruth.filter(r => !(r.s.deadline && Math.abs(Date.parse(r.s.deadline) - Date.parse(r.t.deadline!)) < 36 * 3600_000))
-        .map(r => `deadline ${r.s.deadline ?? 'not found'} (expected ${r.t.deadline}): ${r.e.subject}`),
+        .map(r => `deadline ${r.s.deadline ?? 'not found'} (expected ${r.t.deadline}): ${r.e.subject}${explain && r.raw ? `  · model: ${modelDeadline(r.raw)}` : ''}`),
       ...deesc.filter(r => !r.s.isDeescalation).map(r => `missed de-escalation: ${r.e.subject}`),
       ...inj.filter(r => !r.s.suspiciousInstructions).map(r => `missed injection: ${r.e.subject}`),
     ],
@@ -102,8 +111,9 @@ const holdout = JSON.parse(readFileSync('data/holdout.json', 'utf8')) as { email
 const holdoutB = JSON.parse(readFileSync('data/holdout-b.json', 'utf8')) as { emails: Email[]; truth: EmailTruth[] };
 const t0 = performance.now();
 const synthRows = await run(sample, truth, 'synthetic');
-const holdRows = await run(holdout.emails, new Map(holdout.truth.map(t => [t.emailId, t])), 'hold-out A');
-const holdBRows = await run(holdoutB.emails, new Map(holdoutB.truth.map(t => [t.emailId, t])), 'hold-out B');
+const truthA = new Map(holdout.truth.map(t => [t.emailId, t]));
+const holdRows = await run(focus === 'deadlines' ? holdout.emails.filter(e => withDeadline(e, truthA)) : holdout.emails, truthA, 'hold-out A');
+const holdBRows = focus === 'deadlines' ? [] : await run(holdoutB.emails, new Map(holdoutB.truth.map(t => [t.emailId, t])), 'hold-out B');
 const totalMs = performance.now() - t0;
 const allRows = [...synthRows, ...holdRows, ...holdBRows];
 const tokens = allRows.reduce((a, r) => a + r.tokens, 0);
@@ -113,7 +123,7 @@ const info = backend instanceof LocalModels ? await backend.info() : undefined;
 
 // ---- chat latency ----
 const chat: { q: string; ms: number; tool: string; answer: string }[] = [];
-if (useModel) {
+if (useModel && !focus) {
   const engine = new Engine(data);
   await engine.ingestHistory();
   const snap = engine.snapshot();
@@ -130,8 +140,8 @@ const result = {
   date: new Date().toISOString(), machine: os.hostname(), ...hw,
   engine: useModel ? status?.emailModel : 'rule engine', device: status?.device ?? 'CPU', chatModel: useModel ? status?.chatModel : undefined,
   schemaFailures: failures.length,
-  synthetic: metrics(synthRows),
-  holdout: metrics(holdRows),
+  synthetic: metrics(synthRows, true),
+  holdout: metrics(holdRows, true),
   holdoutB: metrics(holdBRows),
   speed: {
     secondsPerEmail: Math.round(genMs / allRows.length / 10) / 100,
@@ -158,6 +168,7 @@ if (failures.length) console.log(`Model output could not be parsed for ${failure
 console.log(`Speed: ${result.speed.secondsPerEmail} s per email${result.speed.promptSecondsPerEmail !== undefined ? ` (${result.speed.promptSecondsPerEmail} s reading the prompt, then ${result.speed.tokensPerEmail} tokens at ${result.speed.tokensPerSecond} tokens/s)` : ''}`);
 if (info) console.log(`Runtime: ${info.gpu}, ${info.threads ?? '?'} threads, ${info.hybridOrRecurrent ? 'hybrid/recurrent model (prompt prefix needs checkpoints to be reused)' : 'attention model (prompt prefix is reused)'}`);
 for (const c of chat) console.log(`Chat "${c.q}" → ${(c.ms / 1000).toFixed(1)} s via ${c.tool}\n   ${c.answer.replace(/\n/g, ' ')}`);
+if (result.synthetic.mistakes.length) console.log(`\nSynthetic mistakes:\n${result.synthetic.mistakes.map(m => `  ${m}`).join('\n')}`);
 if (result.holdout.mistakes.length) console.log(`\nHold-out A mistakes:\n${result.holdout.mistakes.map(m => `  ${m}`).join('\n')}`);
 if (result.holdoutB.mistakes.length) console.log(`\nHold-out B mistakes:\n${result.holdoutB.mistakes.map(m => `  ${m}`).join('\n')}`);
 mkdirSync('bench-results', { recursive: true });

@@ -1,0 +1,77 @@
+{
+  "name": "triage-demo",
+  "productName": "Triage Brain",
+  "version": "0.1.0",
+  "description": "Local-AI triage assistant demo: Siebel, Jira and Outlook in one prioritized view",
+  "private": true,
+  "main": "dist-electron/main.mjs",
+  "type": "module",
+  "scripts": {
+    "gen:data": "tsx scripts/generate-data.ts",
+    "dev:web": "vite",
+    "build:web": "vite build",
+    "preview:web": "vite preview",
+    "build:electron": "node scripts/build-electron.mjs",
+    "build": "npm run build:web && npm run build:electron",
+    "start": "npm run build && electron .",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "models:pull": "tsx scripts/pull-models.ts",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "eval": "tsx scripts/eval.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "tsx --test tests/*.test.ts",
+    "smoke:electron": "npm run build && electron . --smoke",
+    "screenshots": "npm run build:web && node scripts/screenshots.mjs"
+  },
+  "build": {
+    "appId": "com.example.triagebrain",
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/node-llama-cpp/**",
+      "node_modules/@node-llama-cpp/**"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    },
+    "artifactName": "Triage-Brain-${version}-${os}-${arch}.${ext}"
+  },
+  "dependencies": {
+    "node-llama-cpp": "^3.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}

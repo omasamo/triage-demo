@@ -1,0 +1,35 @@
+# Downloads Qwen3.5-2B and measures accuracy and speed on GitHub's Mac (Apple Silicon) and Windows runners.
+# Run it from the Actions tab. Runners are shared VMs without GPU access, so real laptops are usually faster;
+# run `npm run benchmark` on the target machine for numbers you can quote.
+name: Model benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Synthetic emails to classify (the 25 hold-out emails are always included)
+        default: '40'
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+        env: { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.triage-demo/models
+          key: models-${{ runner.os }}-${{ hashFiles('src/node/config.ts') }}
+      - run: npm run models:pull
+      - name: Benchmark
+        shell: bash
+        run: BENCH_NAME=${{ matrix.os }} npm run benchmark -- --limit ${{ inputs.limit }} && cat bench-results/*.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: bench-${{ matrix.os }}, path: bench-results }

@@ -1,0 +1,63 @@
+// Tool-first chat for small models: the model only chooses one read-only query (constrained JSON),
+// the app runs it, and the model phrases the answer from the returned data.
+import type { Snapshot } from '../engine.ts';
+import type { ChatTools } from '../chat.ts';
+
+export const TOOLS = ['searchItems', 'getItem', 'blockers', 'workload', 'recentChanges', 'slaRisk'] as const;
+
+export const TOOL_QUERY_SCHEMA = {
+  type: 'object',
+  properties: {
+    tool: { enum: TOOLS },
+    args: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' }, text: { type: 'string' }, customer: { type: 'string' },
+        team: { type: 'string' }, assignee: { type: 'string' }, band: { enum: ['', 'P1', 'P2', 'P3', 'P4'] },
+      },
+      required: ['id', 'text', 'customer', 'team', 'assignee', 'band'],
+    },
+  },
+  required: ['tool', 'args'],
+} as const;
+
+export interface ToolQuery {
+  tool: typeof TOOLS[number];
+  args?: { id?: string; text?: string; customer?: string; team?: string; assignee?: string; band?: string };
+}
+
+export function toolPickerPrompt(s: Snapshot) {
+  return `You route questions in a support triage tool to ONE data query. Reply with JSON only. Use "" for unused args.
+Tools:
+- searchItems: open tickets ranked by priority; filter by customer, team, assignee, band (P1-P4) or text.
+- getItem: everything about one ticket; args.id like INT-400 or 1-ABC123.
+- blockers: what blocks a customer's work or a ticket; args.customer or args.id.
+- workload: who is overloaded and suggested hand-offs; optional args.team.
+- recentChanges: priority changes detected from email today.
+- slaRisk: tickets breaching or due within 24 hours.
+Customers: ${s.customers.map(c => c.name).join(', ')}.
+Teams: ${s.teams.map(t => t.name).join(', ')}.
+People: ${s.people.filter(p => p.role !== 'Manager').map(p => p.name).join(', ')}.
+Examples:
+"What is blocking the Acme go-live?" -> {"tool":"blockers","args":{"id":"","text":"","customer":"Acme Logistics","team":"","assignee":"","band":""}}
+"Who is overloaded in Platform Ops?" -> {"tool":"workload","args":{"id":"","text":"","customer":"","team":"Platform Ops","assignee":"","band":""}}
+"What should Marek work on first?" -> {"tool":"searchItems","args":{"id":"","text":"","customer":"","team":"","assignee":"Marek Horvath","band":""}}`;
+}
+
+export function answerPrompt(s: Snapshot) {
+  return `You are the assistant in a support triage tool. It is ${s.now}. Answer the manager's question using ONLY the JSON data given.
+Be brief: at most 6 short lines. Always cite ticket ids exactly (e.g. INT-400, 1-ABC123) and say who owns them.
+If the data is empty, say you found nothing. You are read-only and cannot change tickets.`;
+}
+
+export function runToolQuery(t: ChatTools, q: ToolQuery): unknown {
+  const a = Object.fromEntries(Object.entries(q.args ?? {}).filter(([, v]) => v)) as NonNullable<ToolQuery['args']>;
+  switch (q.tool) {
+    case 'getItem': return a.id ? t.getItem(a.id) : t.searchItems({ ...a, limit: 5 });
+    case 'blockers': return t.blockers({ customer: a.customer, id: a.id });
+    case 'workload': return t.workload(a.team);
+    case 'recentChanges': return t.recentChanges();
+    case 'slaRisk': return t.slaRisk();
+    default: return t.searchItems({ ...a, limit: 8 });
+  }
+}

@@ -1,0 +1,2186 @@
+[
+ {
+  "emailId": "m-0001",
+  "itemId": "siebel:1-Z88FUR",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0002",
+  "itemId": "siebel:1-Z88FUR",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0003",
+  "itemId": "jira:INT-400",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0004",
+  "itemId": "jira:OPS-1100",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0005",
+  "itemId": "jira:OPS-1100",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0006",
+  "itemId": "siebel:1-VTNNDJ",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0007",
+  "itemId": "siebel:1-VTNNDJ",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0008",
+  "itemId": "siebel:1-VTNNDJ",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0009",
+  "itemId": "jira:OPS-1101",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0010",
+  "itemId": "jira:OPS-1101",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0011",
+  "itemId": "siebel:1-GLGQ5F",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0012",
+  "itemId": "siebel:1-GLGQ5F",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0013",
+  "itemId": "jira:INT-401",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0014",
+  "itemId": "jira:INT-401",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0015",
+  "itemId": "jira:OPS-1102",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0016",
+  "itemId": "jira:OPS-1102",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0017",
+  "itemId": "jira:OPS-1103",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0018",
+  "itemId": "jira:OPS-1103",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0019",
+  "itemId": "siebel:1-KSH7P4",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0020",
+  "itemId": "siebel:1-WY2HPB",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0021",
+  "itemId": "siebel:1-VPZQ2K",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0022",
+  "itemId": "siebel:1-VPZQ2K",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0023",
+  "itemId": "siebel:1-WQQRLY",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0024",
+  "itemId": "siebel:1-K83FYQ",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0025",
+  "itemId": "siebel:1-DFNEZ6",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0026",
+  "itemId": "siebel:1-DFNEZ6",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0027",
+  "itemId": "siebel:1-DFNEZ6",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0028",
+  "itemId": "siebel:1-Y2LU2P",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0029",
+  "itemId": "siebel:1-Y2LU2P",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0030",
+  "itemId": "siebel:1-3TXTAN",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0031",
+  "itemId": "siebel:1-3TXTAN",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0032",
+  "itemId": "siebel:1-S9PKRB",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0033",
+  "itemId": "siebel:1-S9PKRB",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0034",
+  "itemId": "siebel:1-S9PKRB",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0035",
+  "itemId": "siebel:1-KF53XX",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0036",
+  "itemId": "siebel:1-MYH8K2",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0037",
+  "itemId": "siebel:1-MYH8K2",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0038",
+  "itemId": "siebel:1-ZJF7QC",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0039",
+  "itemId": "siebel:1-ZJF7QC",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0040",
+  "itemId": "siebel:1-ZJF7QC",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0041",
+  "itemId": "siebel:1-FUATZG",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0042",
+  "itemId": "siebel:1-FUATZG",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0043",
+  "itemId": "siebel:1-JZZNHT",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0044",
+  "itemId": "siebel:1-JZZNHT",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0045",
+  "itemId": "siebel:1-HNLW5L",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0046",
+  "itemId": "siebel:1-HNLW5L",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0047",
+  "itemId": "siebel:1-TPKLSG",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0048",
+  "itemId": "siebel:1-E2UBR2",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0049",
+  "itemId": "siebel:1-E2UBR2",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0050",
+  "itemId": "siebel:1-UVQAZV",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0051",
+  "itemId": "siebel:1-KSKKWR",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0052",
+  "itemId": "siebel:1-RLR7UU",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0053",
+  "itemId": "siebel:1-RLR7UU",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0054",
+  "itemId": "siebel:1-7HVUN2",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0055",
+  "itemId": "siebel:1-7HVUN2",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0056",
+  "itemId": "siebel:1-PBKAQR",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0057",
+  "itemId": "siebel:1-G3LZTL",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0058",
+  "itemId": "siebel:1-G3LZTL",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0059",
+  "itemId": "siebel:1-ML7N8X",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0060",
+  "itemId": "siebel:1-ML7N8X",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0061",
+  "itemId": "siebel:1-ML7N8X",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0062",
+  "itemId": "siebel:1-FVXC5K",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0063",
+  "itemId": "siebel:1-FVXC5K",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0064",
+  "itemId": "siebel:1-BHBHCE",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0065",
+  "itemId": "siebel:1-BHBHCE",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0066",
+  "itemId": "siebel:1-GRBYTN",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0067",
+  "itemId": "siebel:1-GRBYTN",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0068",
+  "itemId": "siebel:1-YFVGWV",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0069",
+  "itemId": "siebel:1-YFVGWV",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0070",
+  "itemId": "siebel:1-GWYSWB",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0071",
+  "itemId": "siebel:1-KZB37A",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0072",
+  "itemId": "siebel:1-RPLCG9",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0073",
+  "itemId": "siebel:1-RPLCG9",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0074",
+  "itemId": "siebel:1-K4JQG5",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0075",
+  "itemId": "siebel:1-S7PJTW",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0076",
+  "itemId": "siebel:1-C2LUS2",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0077",
+  "itemId": "siebel:1-C2LUS2",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0078",
+  "itemId": "siebel:1-GMRGGS",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0079",
+  "itemId": "siebel:1-GMRGGS",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0080",
+  "itemId": "siebel:1-WCGT4C",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0081",
+  "itemId": "siebel:1-7FZ8YE",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0082",
+  "itemId": "siebel:1-7FZ8YE",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0083",
+  "itemId": "siebel:1-7FZ8YE",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0084",
+  "itemId": "siebel:1-P7VVAX",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0085",
+  "itemId": "siebel:1-P7VVAX",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0086",
+  "itemId": "siebel:1-8TGR47",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0087",
+  "itemId": "siebel:1-GRFM8R",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0088",
+  "itemId": "siebel:1-GRFM8R",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0089",
+  "itemId": "siebel:1-WN4KJR",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0090",
+  "itemId": "siebel:1-WN4KJR",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0091",
+  "itemId": "siebel:1-WN4KJR",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0092",
+  "itemId": "siebel:1-5Q2Y3G",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0093",
+  "itemId": "siebel:1-4SFGYT",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0094",
+  "itemId": "siebel:1-4SFGYT",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0095",
+  "itemId": "siebel:1-KS3R3C",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0096",
+  "itemId": "siebel:1-KS3R3C",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0097",
+  "itemId": "siebel:1-KS3R3C",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0098",
+  "itemId": "siebel:1-TZQKPQ",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0099",
+  "itemId": "siebel:1-TZQKPQ",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0100",
+  "itemId": "siebel:1-3YC7UV",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0101",
+  "itemId": "siebel:1-3YC7UV",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0102",
+  "itemId": "siebel:1-4GBY9J",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0103",
+  "itemId": "siebel:1-4GBY9J",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0104",
+  "itemId": "siebel:1-Z2T2CK",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0105",
+  "itemId": "siebel:1-Z2T2CK",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0106",
+  "itemId": "siebel:1-KV5DJE",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0107",
+  "itemId": "siebel:1-W6NJZL",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0108",
+  "itemId": "siebel:1-W6NJZL",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0109",
+  "itemId": "siebel:1-JPP2HD",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0110",
+  "itemId": "siebel:1-FYT3UW",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0111",
+  "itemId": "jira:OPS-1104",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0112",
+  "itemId": "jira:OPS-1105",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0113",
+  "itemId": "jira:OPS-1105",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0114",
+  "itemId": "jira:OPS-1106",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0115",
+  "itemId": "jira:OPS-1107",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0116",
+  "itemId": "jira:OPS-1107",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0117",
+  "itemId": "jira:OPS-1108",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0118",
+  "itemId": "jira:OPS-1108",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0119",
+  "itemId": "jira:OPS-1108",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0120",
+  "itemId": "jira:OPS-1109",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0121",
+  "itemId": "jira:OPS-1109",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0122",
+  "itemId": "jira:OPS-1110",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0123",
+  "itemId": "jira:OPS-1111",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0124",
+  "itemId": "jira:OPS-1111",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0125",
+  "itemId": "jira:OPS-1111",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0126",
+  "itemId": "jira:OPS-1112",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0127",
+  "itemId": "jira:OPS-1113",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0128",
+  "itemId": "jira:OPS-1114",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0129",
+  "itemId": "jira:OPS-1115",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0130",
+  "itemId": "jira:OPS-1115",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0131",
+  "itemId": "jira:OPS-1116",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0132",
+  "itemId": "jira:OPS-1116",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0133",
+  "itemId": "jira:OPS-1117",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0134",
+  "itemId": "jira:OPS-1117",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0135",
+  "itemId": "jira:OPS-1118",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0136",
+  "itemId": "jira:OPS-1119",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0137",
+  "itemId": "jira:OPS-1120",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0138",
+  "itemId": "jira:OPS-1120",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0139",
+  "itemId": "jira:OPS-1121",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0140",
+  "itemId": "jira:OPS-1122",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0141",
+  "itemId": "jira:OPS-1122",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0142",
+  "itemId": "jira:OPS-1123",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0143",
+  "itemId": "jira:OPS-1123",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0144",
+  "itemId": "jira:OPS-1124",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0145",
+  "itemId": "jira:OPS-1124",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0146",
+  "itemId": "jira:OPS-1126",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0147",
+  "itemId": "jira:OPS-1126",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0148",
+  "itemId": "jira:OPS-1126",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0149",
+  "itemId": "jira:OPS-1127",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0150",
+  "itemId": "jira:OPS-1127",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0151",
+  "itemId": "jira:OPS-1129",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0152",
+  "itemId": "jira:OPS-1130",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0153",
+  "itemId": "jira:OPS-1130",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0154",
+  "itemId": "jira:OPS-1131",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0155",
+  "itemId": "jira:OPS-1131",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0156",
+  "itemId": "jira:OPS-1132",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0157",
+  "itemId": "jira:OPS-1132",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0158",
+  "itemId": "jira:OPS-1133",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0159",
+  "itemId": "jira:OPS-1138",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0160",
+  "itemId": "jira:OPS-1139",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0161",
+  "itemId": "jira:OPS-1140",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0162",
+  "itemId": "jira:OPS-1140",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0163",
+  "itemId": "jira:OPS-1141",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0164",
+  "itemId": "jira:OPS-1142",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0165",
+  "itemId": "jira:OPS-1142",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0166",
+  "itemId": "jira:OPS-1143",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0167",
+  "itemId": "jira:OPS-1143",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0168",
+  "itemId": "jira:OPS-1144",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0169",
+  "itemId": "jira:OPS-1145",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0170",
+  "itemId": "jira:INT-402",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0171",
+  "itemId": "jira:INT-403",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0172",
+  "itemId": "jira:INT-403",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0173",
+  "itemId": "jira:INT-404",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0174",
+  "itemId": "jira:INT-404",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0175",
+  "itemId": "jira:INT-405",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0176",
+  "itemId": "jira:INT-406",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0177",
+  "itemId": "jira:INT-406",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0178",
+  "itemId": "jira:INT-407",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0179",
+  "itemId": "jira:INT-408",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0180",
+  "itemId": "jira:INT-408",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0181",
+  "itemId": "jira:INT-409",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0182",
+  "itemId": "jira:INT-409",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0183",
+  "itemId": "jira:INT-411",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0184",
+  "itemId": "jira:INT-411",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0185",
+  "itemId": "jira:INT-412",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0186",
+  "itemId": "jira:INT-412",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0187",
+  "itemId": "jira:INT-413",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0188",
+  "itemId": "jira:INT-413",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0189",
+  "itemId": "jira:INT-414",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0190",
+  "itemId": "jira:INT-414",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0191",
+  "itemId": "jira:INT-415",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0192",
+  "itemId": "jira:INT-415",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0193",
+  "itemId": "jira:INT-416",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0194",
+  "itemId": "jira:INT-416",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0195",
+  "itemId": "jira:INT-417",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0196",
+  "itemId": "jira:INT-420",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0197",
+  "itemId": "jira:INT-420",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0198",
+  "itemId": "jira:INT-423",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0199",
+  "itemId": "jira:INT-424",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0200",
+  "itemId": "jira:INT-426",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0201",
+  "itemId": "jira:INT-426",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0202",
+  "itemId": "jira:INT-427",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0203",
+  "itemId": "jira:INT-427",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0204",
+  "itemId": "jira:INT-428",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0205",
+  "itemId": "jira:INT-429",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0206",
+  "itemId": "jira:INT-429",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0207",
+  "itemId": "jira:INT-430",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0208",
+  "itemId": "jira:INT-430",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0209",
+  "itemId": "jira:INT-431",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0210",
+  "itemId": "jira:INT-431",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0211",
+  "itemId": "jira:INT-433",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0212",
+  "itemId": "jira:INT-435",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0213",
+  "itemId": "jira:INT-436",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0214",
+  "itemId": "jira:INT-436",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0215",
+  "itemId": "jira:INT-437",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0216",
+  "itemId": "jira:INT-438",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0217",
+  "itemId": "jira:INT-438",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0218",
+  "itemId": "siebel:1-KSH7P4",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0219",
+  "itemId": "siebel:1-D88SSQ",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0220",
+  "itemId": "siebel:1-KF53XX",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0221",
+  "itemId": "siebel:1-HNLW5L",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0222",
+  "itemId": "siebel:1-RLR7UU",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0223",
+  "itemId": "siebel:1-G3LZTL",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0224",
+  "itemId": "siebel:1-YFVGWV",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0225",
+  "itemId": "siebel:1-GMRGGS",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0226",
+  "itemId": "siebel:1-8TGR47",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0227",
+  "itemId": "siebel:1-5Q2Y3G",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0228",
+  "itemId": "siebel:1-4GBY9J",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0229",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0230",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0231",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0232",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0233",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0234",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0235",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0236",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0237",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0238",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0239",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0240",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0241",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0242",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0243",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0244",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0245",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0246",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0247",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0248",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0249",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0250",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0251",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0252",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0253",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0254",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0255",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0256",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0257",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0258",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0259",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0260",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0261",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0262",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0263",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0264",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0265",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0266",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0267",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0268",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0269",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0270",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0271",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0272",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0273",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0274",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0275",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0276",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0277",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0278",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0279",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0280",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0281",
+  "itemId": "jira:INT-400",
+  "kind": "info",
+  "urgency": "medium",
+  "deadline": "2026-10-09T17:00:00.000Z"
+ },
+ {
+  "emailId": "m-0282",
+  "itemId": "jira:INT-400",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0283",
+  "itemId": "jira:OPS-1100",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0284",
+  "itemId": "siebel:1-VTNNDJ",
+  "kind": "info",
+  "urgency": "medium",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0285",
+  "itemId": "siebel:1-GLGQ5F",
+  "kind": "info",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0286",
+  "itemId": "siebel:1-GLGQ5F",
+  "kind": "info",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0287",
+  "itemId": "jira:INT-400",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": "2026-10-08T17:00:00.000Z"
+ },
+ {
+  "emailId": "m-0288",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0289",
+  "itemId": "siebel:1-VTNNDJ",
+  "kind": "escalation",
+  "urgency": "critical",
+  "deadline": "2026-10-07T12:00:00.000Z"
+ },
+ {
+  "emailId": "m-0290",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0291",
+  "itemId": null,
+  "kind": "injection",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0292",
+  "itemId": "jira:OPS-1101",
+  "kind": "deescalation",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0293",
+  "itemId": "siebel:1-GLGQ5F",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0294",
+  "itemId": "jira:INT-401",
+  "kind": "deadline_change",
+  "urgency": "medium",
+  "deadline": "2026-10-11T02:00:00.000Z"
+ },
+ {
+  "emailId": "m-0295",
+  "itemId": "siebel:1-D88SSQ",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0296",
+  "itemId": "siebel:1-3TXTAN",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0297",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0298",
+  "itemId": "siebel:1-JZZNHT",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0299",
+  "itemId": "siebel:1-E2UBR2",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": "2026-10-06T18:00:00.000Z"
+ },
+ {
+  "emailId": "m-0300",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0301",
+  "itemId": "siebel:1-DZ5QBE",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0302",
+  "itemId": "siebel:1-ML7N8X",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0303",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0304",
+  "itemId": "siebel:1-N6PXU9",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0305",
+  "itemId": "siebel:1-GMRGGS",
+  "kind": "escalation",
+  "urgency": "high",
+  "deadline": "2026-10-06T18:00:00.000Z"
+ },
+ {
+  "emailId": "m-0306",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0307",
+  "itemId": "siebel:1-9BXLGP",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0308",
+  "itemId": "siebel:1-NLBAXQ",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0309",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0310",
+  "itemId": "siebel:1-3YC7UV",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0311",
+  "itemId": "siebel:1-KV5DJE",
+  "kind": "customer_reply",
+  "urgency": "low",
+  "deadline": null
+ },
+ {
+  "emailId": "m-0312",
+  "itemId": null,
+  "kind": "noise",
+  "urgency": "none",
+  "deadline": null
+ }
+]

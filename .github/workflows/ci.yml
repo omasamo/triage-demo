@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Desktop app smoke test (Electron loads, UI renders data over IPC)
+        run: xvfb-run -a npx electron . --smoke --no-sandbox
+      - name: Rule-engine benchmark
+        run: BENCH_NAME=rules npm run benchmark -- --engine rules && cat bench-results/rules.md >> "$GITHUB_STEP_SUMMARY"

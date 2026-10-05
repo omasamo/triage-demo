@@ -92,13 +92,16 @@ function metrics(rows: Row[], explain = false) {
     emails: rows.length,
     escalation: { precision: pct(tp, tp + fp), recall: pct(tp, tp + fn), tp, fp, fn },
     linking: { accuracy: pct(withItem.filter(r => r.linked === r.t.itemId).length, withItem.length), falseLinks: rows.filter(r => !r.t.itemId && r.linked).length, of: withItem.length },
-    deadline: { found: pct(dlOk, dlTruth.length), of: dlTruth.length },
+    // A deadline on mail that names none raises the wrong ticket, so false deadlines are counted too.
+    deadline: { found: pct(dlOk, dlTruth.length), of: dlTruth.length, false: rows.filter(r => !r.t.deadline && r.s.deadline).length },
     deescalation: { found: pct(deesc.filter(r => r.s.isDeescalation).length, deesc.length), of: deesc.length },
     injection: { blocked: pct(inj.filter(r => r.s.suspiciousInstructions).length, inj.length), of: inj.length },
     mistakes: [
       ...rows.filter(r => isEsc(r.t) !== r.s.isEscalation).map(r => `${isEsc(r.t) ? 'missed escalation' : 'false alarm'}: ${r.e.subject}`),
       ...dlTruth.filter(r => !(r.s.deadline && Math.abs(Date.parse(r.s.deadline) - Date.parse(r.t.deadline!)) < 36 * 3600_000))
         .map(r => `deadline ${r.s.deadline ?? 'not found'} (expected ${r.t.deadline}): ${r.e.subject}${explain && r.raw ? `  · model: ${modelDeadline(r.raw)}` : ''}`),
+      ...rows.filter(r => !r.t.deadline && r.s.deadline)
+        .map(r => `false deadline ${r.s.deadline}: ${r.e.subject}${explain && r.raw ? `  · model: ${modelDeadline(r.raw)}` : ''}`),
       ...deesc.filter(r => !r.s.isDeescalation).map(r => `missed de-escalation: ${r.e.subject}`),
       ...inj.filter(r => !r.s.suspiciousInstructions).map(r => `missed injection: ${r.e.subject}`),
     ],
@@ -159,7 +162,7 @@ console.log(`\nTriage Brain benchmark · ${hw.platform} · ${hw.cpu} · ${hw.ram
 console.log(`Engine: ${result.engine} on ${result.device}${result.chatModel ? ` · chat: ${result.chatModel}` : ''}`);
 const row = (m: ReturnType<typeof metrics>) => ({
   'Escalation precision %': m.escalation.precision, 'Escalation recall %': m.escalation.recall,
-  'Email→ticket linking %': m.linking.accuracy, 'Deadlines found %': m.deadline.found,
+  'Email→ticket linking %': m.linking.accuracy, 'Deadlines found %': m.deadline.found, 'False deadlines': m.deadline.false,
   'De-escalations found %': m.deescalation.found, 'Prompt injections blocked %': m.injection.blocked,
 });
 console.table({ [`Synthetic set (${result.synthetic.emails})`]: row(result.synthetic), [`Hold-out A (${result.holdout.emails})`]: row(result.holdout),
@@ -174,11 +177,11 @@ if (result.holdoutB.mistakes.length) console.log(`\nHold-out B mistakes:\n${resu
 mkdirSync('bench-results', { recursive: true });
 const file = `bench-results/${(process.env.BENCH_NAME ?? os.hostname()).replace(/[^a-z0-9-]+/gi, '-')}.json`;
 writeFileSync(file, JSON.stringify(result, null, 2));
-const md = (m: ReturnType<typeof metrics>) => `${m.escalation.precision ?? '-'} | ${m.escalation.recall ?? '-'} | ${m.linking.accuracy ?? '-'} | ${m.deadline.found ?? '-'} | ${m.deescalation.found ?? '-'} | ${m.injection.blocked ?? '-'}`;
+const md = (m: ReturnType<typeof metrics>) => `${m.escalation.precision ?? '-'} | ${m.escalation.recall ?? '-'} | ${m.linking.accuracy ?? '-'} | ${m.deadline.found ?? '-'} | ${m.deadline.false} | ${m.deescalation.found ?? '-'} | ${m.injection.blocked ?? '-'}`;
 writeFileSync(file.replace(/\.json$/, '.md'), [
   `### ${result.engine} on ${hw.platform} (${hw.cpu}, ${hw.ramGb} GB RAM, ${result.device})`, '',
-  '| Set | Escalation precision % | Escalation recall % | Linking % | Deadlines % | De-escalations % | Injections blocked % |',
-  '|---|---|---|---|---|---|---|',
+  '| Set | Escalation precision % | Escalation recall % | Linking % | Deadlines % | False deadlines | De-escalations % | Injections blocked % |',
+  '|---|---|---|---|---|---|---|---|',
   `| Synthetic (${result.synthetic.emails}) | ${md(result.synthetic)} |`,
   `| Hold-out A (${result.holdout.emails}) | ${md(result.holdout)} |`,
   `| Hold-out B, unseen (${result.holdoutB.emails}) | ${md(result.holdoutB)} |`, '',

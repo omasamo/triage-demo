@@ -42,9 +42,11 @@ const END_OF_NEXT_WEEK = /\b(end of next week|ende (?:der )?nachste[nr]? woche|k
 const NEXT_WEEK = /\b(next week|following week|nachste[nr]? woche|kommende[nr]? woche|(?:pristi|budouci)(?:ho|m)? ty(?:den|dne|dnu)|buduc(?:i|eho|om) tyzd(?:en|na|ni)|proxima semana|semana (?:que viene|proxima)|semaine prochaine)\b/;
 const END_OF_WEEK = /\b(end of (?:the |this )?week|this week|by the weekend|weekend|eow|week'?s end|diese[nr]? woche|ende der woche|wochenende|konc[ei] tydne|konca tyzdna|tento tyden|tento tyzden|esta semana|finales? de (?:la |esta )?semana|cette semaine|fin de (?:la )?semaine)\b/;
 const END_OF_NEXT_MONTH = /\b(end of next month|ende des nachsten monats|konc[ei] pristiho mesice)\b/;
-const END_OF_MONTH = /\b(end of (?:the |this )?month|month[- ]?end|eom|monatsende|ende (?:des|diese[ns]) monats|kon(?:ec|ce|ci) mesice|kon(?:ca|iec) mesiaca|finales? de(?:l)? mes|fin de mes|fin du mois)\b/;
+const END_OF_MONTH = /\b(end of (?:the |this )?month|last (?:working |business )?day of (?:the |this )?month|month[- ]?end|eom|monatsende|ende (?:des|diese[ns]) monats|kon(?:ec|ce|ci) mesice|kon(?:ca|iec) mesiaca|finales? de(?:l)? mes|fin de mes|fin du mois)\b/;
 const DAY_AFTER_TOMORROW = /\b(day after tomorrow|ubermorgen|pozitri|pozajtra|pasado manana|apres[- ]demain)\b/;
 const TOMORROW = /\b(tomorrow|tmrw|morgen|zitra|zitrka|zajtra|manana|demain)\b/;
+// Words about the past ("since Monday", "two days ago", "letzte Woche") never name a deadline.
+const PAST = /\b(since|ago|last(?! (?:working |business )?day of)|yesterday|seit|gestern|letzte[nmrs]?|minul[aeyou]{1,2}|vcera|desde|ayer|depuis|hier|derniere?)\b/;
 const TODAY = /\b(today|tonight|this (?:morning|afternoon|evening)|end of (?:the )?(?:business )?day|eod|cob|close of business|heute|dnes|dneska|hoy|aujourd'?hui|ce soir)\b/;
 
 const NUMBER_WORDS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, ten: 10, twelve: 12 };
@@ -108,6 +110,7 @@ export function parseDeadlinePhrase(phrase: string | null | undefined, sentIso: 
   const sent = new Date(sentIso);
   if (Number.isNaN(sent.getTime())) return null;
   const t = ` ${plain(phrase).replace(/[“”„"«»()]/g, ' ').replace(/\s+/g, ' ')} `;
+  if (PAST.test(t)) return null;
   const at = (day: Date, [h, m]: Clock) => new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, m)).toISOString();
   const plus = (n: number) => new Date(sent.getTime() + n * DAY);
   const iso = (sent.getUTCDay() + 6) % 7;                                 // Monday 0 … Sunday 6

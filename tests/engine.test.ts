@@ -169,6 +169,10 @@ test('deadline words in several languages are turned into dates from the day the
   const s = normalizeSignals({ deadline: { quote: 'do pátku', english: 'by Friday' } }, tue);
   assert.equal(s.deadline, '2026-10-09T17:00:00.000Z');
   assert.equal(s.deadlineText, 'do pátku');
+  const none = normalizeSignals({ deadline: { quote: '', english: '' } }, tue);
+  assert.equal(none.deadline, null);
+  assert.equal(none.deadlineText, undefined);
+  assert.equal(r('since Monday'), null);                                     // words about the past are not deadlines
 });
 
 test('hand-offs never push the receiver past their remaining capacity', async () => {

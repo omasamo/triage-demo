@@ -280,10 +280,13 @@ for (let i = 0; i < 11; i++) {
   const c = cust(it.customerId), k = contacts[c.id][0];
   const line = escalationLines[i % escalationLines.length](it);
   const exec = /CFO|COO|CEO/.test(line);
+  const at = NOW - between(2, 40) * H;
+  // "fixed by tomorrow" is a deadline: the end of the next working day after the email.
+  const tomorrow = new Date(at + D); tomorrow.setUTCHours(17, 0, 0, 0);
   mail({
     from: contactEmail(c, k.name), fromName: k.name, subject: `URGENT: ${subjRef(it)} ${it.title}`,
-    body: `Hello,\n\n${line}${sign(k.name, k.title, c)}`, at: NOW - between(2, 40) * H,
-  }, { itemId: it.id, kind: 'escalation', urgency: exec || i % 4 === 3 ? 'critical' : 'high', deadline: null });
+    body: `Hello,\n\n${line}${sign(k.name, k.title, c)}`, at,
+  }, { itemId: it.id, kind: 'escalation', urgency: exec || i % 4 === 3 ? 'critical' : 'high', deadline: /by tomorrow/.test(line) ? tomorrow.toISOString() : null });
 }
 
 // Internal and noise traffic.

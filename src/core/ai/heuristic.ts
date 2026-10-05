@@ -75,7 +75,7 @@ export function heuristicSignals(e: Email, nowIso: string): EmailSignals {
   else if (has(text, HIGH)) { urgency = 'high'; pickEvidence(HIGH); }
   else if (has(text, MEDIUM)) { urgency = 'medium'; pickEvidence(MEDIUM); }
   if (exec && (urgency === 'high' || urgency === 'medium')) urgency = urgency === 'high' ? 'critical' : 'high';
-  const deadline = extractDeadline(e.body, nowIso);
+  const deadline = extractDeadline(e.body, e.receivedAt);   // "by tomorrow" counts from when the email was sent
   if (deadline && urgency === 'low') urgency = 'medium';
   const deesc = DEESC.test(text) && !CRITICAL.test(text);
   if (deesc) { urgency = 'low'; evidence = sents.find(s => DEESC.test(s)) ?? evidence; }

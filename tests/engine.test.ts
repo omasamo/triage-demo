@@ -127,6 +127,24 @@ test('a date written in the email beats a reply-by phrase the model quoted', asy
   assert.equal(combineWithRules(normalizeSignals({ deadline: { quote: '', english: '' } }, ooo.receivedAt), ooo, data.now).deadline, null);
 });
 
+test('a quoted deadline must come from the email itself, on mail with some urgency', async () => {
+  const { combineWithRules } = await import('../src/core/ai/heuristic.ts');
+  const { normalizeSignals } = await import('../src/core/ai/schema.ts');
+  const e = { ...data.incoming[0], subject: 'Sync tomorrow', body: "Shall we move tomorrow's sync to 10:00?\n\nLucia" };
+  const mention = normalizeSignals({ urgency: 'none', deadline: { quote: "tomorrow's sync", english: 'tomorrow' } }, e.receivedAt);
+  assert.equal(combineWithRules(mention, e, data.now).deadline, null);                 // a mention, not an ask
+  const copied = normalizeSignals({ urgency: 'high', isEscalation: true, deadline: { quote: 'entro venerdì', english: 'by Friday' } }, e.receivedAt);
+  assert.equal(combineWithRules(copied, e, data.now).deadline, null);                  // words the email never says
+  const real = normalizeSignals({ urgency: 'high', isEscalation: true, deadline: { quote: 'do PÁTKU', english: 'by Friday' } }, e.receivedAt);
+  const got = combineWithRules(real, { ...e, body: 'Prosíme o vyřešení do pátku.' }, data.now);
+  assert.equal(got.deadline, '2026-10-09T17:00:00.000Z');
+  assert.equal(got.deadlineText, 'do PÁTKU');
+  const ooo = { ...e, subject: 'Automatische Antwort: Abwesend', body: 'Ich bin bis 12. Oktober nicht im Büro.' };
+  const auto = combineWithRules(normalizeSignals({ urgency: 'medium', isEscalation: true, deadline: { quote: 'bis 12. Oktober', english: 'until 12 October' } }, ooo.receivedAt), ooo, data.now);
+  assert.equal(auto.deadline, null);
+  assert.equal(auto.isEscalation, false);
+});
+
 test('rule safety net quarantines known injections and drops ticket ids the email never mentions', async () => {
   const { combineWithRules } = await import('../src/core/ai/heuristic.ts');
   const { normalizeSignals } = await import('../src/core/ai/schema.ts');

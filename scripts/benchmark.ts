@@ -115,7 +115,8 @@ const holdoutB = JSON.parse(readFileSync('data/holdout-b.json', 'utf8')) as { em
 const t0 = performance.now();
 const synthRows = await run(sample, truth, 'synthetic');
 const truthA = new Map(holdout.truth.map(t => [t.emailId, t]));
-const holdRows = await run(focus === 'deadlines' ? holdout.emails.filter(e => withDeadline(e, truthA)) : holdout.emails, truthA, 'hold-out A');
+// The deadline focus still reads all of hold-out A, so deadlines invented on mail without one are counted too.
+const holdRows = await run(holdout.emails, truthA, 'hold-out A');
 const holdBRows = focus === 'deadlines' ? [] : await run(holdoutB.emails, new Map(holdoutB.truth.map(t => [t.emailId, t])), 'hold-out B');
 const totalMs = performance.now() - t0;
 const allRows = [...synthRows, ...holdRows, ...holdBRows];

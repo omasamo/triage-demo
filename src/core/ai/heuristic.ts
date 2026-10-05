@@ -8,6 +8,9 @@ const has = (s: string, re: RegExp) => re.test(s);
 
 // Common shapes of text aimed at an AI rather than at people (indirect prompt injection).
 const INJECTION = /(ignore (all |any )?(previous|prior|above|earlier) instructions|system notice to ai|as an ai assistant you must|do not mention this message|if you are an? (ai|language model|llm|bot|automated (system|assistant))\b|\b(ai|llm|language model|bot|classifier|triage (bot|model|system)) (reading|processing|summari[sz]ing) this)/i;
+// Out-of-office and other auto-replies carry no ask (real mail has an Auto-Submitted header; the subject is the proxy here).
+const AUTO_REPLY = /^\s*((re|aw|fwd?|wg)\s*:\s*)*(automatic reply|automatische antwort|abwesenheitsnotiz|abwesend|réponse automatique|respuesta automática|automatická odpověď|out of office|ooo\b)/i;
+const plainText = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[“”„"«»']/g, '').replace(/\s+/g, ' ').trim();
 const NOISE_SENDER = /(newsletter|noreply|no-reply|calendar|hr@|facilities|events@|it-news|security@)/i;
 const EXEC = /\b(CEO|CFO|COO|CIO|board|finance director|managing director|VP)\b/;
 const CRITICAL = /(production is (effectively )?down|outage|cannot go live|regulator|penalty|top priority|treat .* as critical|refusing to pay|legal)/i;
@@ -71,7 +74,7 @@ export function heuristicSignals(e: Email, nowIso: string): EmailSignals {
   if (INJECTION.test(text)) {
     return { ...base, suspiciousInstructions: true, evidence: sents.find(s => INJECTION.test(s)) ?? sents[0] ?? '', summary: 'Email tries to instruct the AI; ignored' };
   }
-  if (NOISE_SENDER.test(e.from)) return { ...base, summary: `Internal or bulk mail: ${e.subject}` };
+  if ((NOISE_SENDER.test(e.from) || AUTO_REPLY.test(e.subject))) return { ...base, summary: `Internal or bulk mail: ${e.subject}` };
 
   let urgency: Urgency = 'low';
   let evidence = '';
@@ -111,11 +114,17 @@ export function combineWithRules(model: EmailSignals, e: Email, nowIso: string):
     return { ...model, ticketRefs, suspiciousInstructions: true, isEscalation: false, isDeescalation: false, urgency: 'none', deadline: null, deadlineText: undefined,
       evidence: model.suspiciousInstructions ? model.evidence : rules.evidence, summary: model.suspiciousInstructions ? model.summary : rules.summary };
   }
-  // When the model found a deadline but quoted a relative phrase ("confirm by end of day today") while the email
-  // also writes out a calendar date ("go-live on Thursday 8 October"), the written date is the real commitment.
-  // An email the model reads as having no deadline (an out-of-office "back on 12 October") stays without one.
-  const written = model.deadline ? writtenDeadline(e.body, e.receivedAt) : null;
-  const deadline = written?.at ?? model.deadline ?? rules.deadline;
-  return { ...model, ticketRefs, deadline, deadlineText: written && deadline === written.at ? written.text : model.deadlineText,
+  // A deadline counts only when the words the model quoted are really in the email (not copied from its instructions)
+  // and the mail carries some urgency: a newsletter's "Friday" or a meeting's "tomorrow" is a mention, not an ask.
+  // Auto-replies never escalate and their dates ("back on 12 October") are not deadlines.
+  const autoReply = AUTO_REPLY.test(e.subject);
+  const quoted = !model.deadlineText || plainText(`${e.subject}\n${e.body}`).includes(plainText(model.deadlineText));
+  const fromModel = !autoReply && quoted && model.urgency !== 'none' ? model.deadline : null;
+  // When the model quoted a relative phrase ("confirm by end of day today") while the email also writes out a
+  // calendar date ("go-live on Thursday 8 October"), the written date is the real commitment.
+  const written = fromModel ? writtenDeadline(e.body, e.receivedAt) : null;
+  const deadline = written?.at ?? fromModel ?? (autoReply ? null : rules.deadline);
+  const deadlineText = !deadline ? undefined : written ? written.text : deadline === fromModel ? model.deadlineText : undefined;
+  return { ...model, ticketRefs, deadline, deadlineText, isEscalation: model.isEscalation && !autoReply,
     isDeescalation: model.isDeescalation || (rules.isDeescalation && !model.isEscalation) };
 }

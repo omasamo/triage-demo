@@ -190,4 +190,6 @@ writeFileSync(file.replace(/\.json$/, '.md'), [
   ...chat.map(c => `- Chat "${c.q}": ${(c.ms / 1000).toFixed(1)} s via \`${c.tool}\`. ${c.answer.replace(/\n/g, ' ')}`),
 ].join('\n') + '\n');
 console.log(`\nSaved ${file}`);
-await backend?.dispose();
+// Exit without unloading the model: the results are saved, and unloading has crashed the process (exit code 127)
+// on a Windows runner after everything above had been printed.
+process.exit(0);

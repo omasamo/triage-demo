@@ -1,10 +1,11 @@
 // Ticket Q&A. A small set of read-only tools over the engine state. A model (local or team hub)
-// picks the tool; without one, a rule-based router does. Either way the app runs the tool and writes
-// the facts itself, so the ticket ids, owners and numbers in an answer always come from the data.
+// understands the question and picks the tool; without one, a rule-based router does. Either way the
+// app runs the tool and writes the answer itself, so every ticket id, owner and number comes from the
+// data. (Benchmarks showed a 2B model's own sentences sometimes contradicted the list under them.)
 import type { Snapshot } from './engine.ts';
 import type { ScoredItem, WorkItem } from './types.ts';
 import { fmtHours } from './scoring.ts';
-import { TOOLS, leadPrompt, runToolQuery, toolPickerPrompt, type ToolQuery } from './ai/chatPlan.ts';
+import { TOOLS, runToolQuery, toolPickerPrompt, type ToolQuery } from './ai/chatPlan.ts';
 import { parseModelJson } from './ai/json.ts';
 
 export interface ChatAnswer {
@@ -91,7 +92,8 @@ export class ChatTools {
     return items.map(it => {
       const blockedBy = it.blockedByIds.map(id => this.s.items.find(i => i.id === id)).filter((x): x is WorkItem => !!x).map(b => {
         const load = this.s.loads.find(l => l.person.id === b.assigneeId);
-        return { ...this.brief(b), ownerLoad: load ? `${load.status}, ${Math.round(load.loadRatio * 100)}% of capacity` : undefined };
+        return { ...this.brief(b), ownerLoad: load ? `${load.status}, ${Math.round(load.loadRatio * 100)}% of capacity` : undefined,
+          ownerOverloaded: load?.status === 'overloaded', ownerLoadPct: load ? Math.round(load.loadRatio * 100) : undefined };
       });
       return { ...this.brief(it), goLive: it.goLiveAt, blockedBy, linked: it.linkedIds.map(id => this.s.items.find(i => i.id === id)?.externalId) };
     });
@@ -113,12 +115,13 @@ export class ChatTools {
     return this.s.changes.slice(0, limit).map(c => ({ item: this.s.items.find(i => i.id === c.itemId)!.externalId, from: c.fromBand, to: c.toBand, reason: c.reason, at: c.at }));
   }
 
-  /** Tool: items breaching SLA within N hours, optionally for one team. */
+  /** Tool: items breaching SLA within N hours, optionally for one team (the ten most urgent, plus totals). */
   slaRisk(hours = 24, team?: string) {
     const now = Date.parse(this.s.now);
     const t = team ? this.matchTeam(team) : undefined;
-    return this.s.scored.filter(x => x.item.status !== 'Waiting on Customer' && Date.parse(x.item.slaDueAt) - now < hours * H && (!t || x.item.teamId === t.id))
-      .sort((a, b) => a.item.slaDueAt.localeCompare(b.item.slaDueAt)).slice(0, 10).map(x => this.brief(x));
+    const due = this.s.scored.filter(x => x.item.status !== 'Waiting on Customer' && Date.parse(x.item.slaDueAt) - now < hours * H && (!t || x.item.teamId === t.id))
+      .sort((a, b) => a.item.slaDueAt.localeCompare(b.item.slaDueAt));
+    return { total: due.length, breached: due.filter(x => Date.parse(x.item.slaDueAt) < now).length, items: due.slice(0, 10).map(x => this.brief(x)) };
   }
 
   refsIn(text: string): string[] {
@@ -176,8 +179,63 @@ export function groundQuery(t: ChatTools, q: ToolQuery, question: string, histor
   return { tool: TOOLS.includes(q.tool) ? q.tool : 'searchItems', args };
 }
 
-/** Writes the facts for a tool result. This text is what the user sees, with or without a model. */
+/** The answer: a one-sentence conclusion computed from the data, then the facts behind it. */
 export function renderResult(t: ChatTools, q: ToolQuery, result: unknown): string {
+  const c = conclusion(q, result);
+  const f = facts(t, q, result);
+  return [c, f].filter(Boolean).join('\n\n');
+}
+
+function conclusion(q: ToolQuery, result: unknown): string {
+  const a = { ...EMPTY_ARGS, ...q.args };
+  const and = (xs: string[]) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+  switch (q.tool) {
+    case 'blockers': {
+      const r = result as ReturnType<ChatTools['blockers']>;
+      const it = r.find(x => x.blockedBy.length);
+      if (!r.length) return '';
+      if (!it) return `No technical blocker is recorded for ${a.customer || a.id}.`;
+      const b = it.blockedBy[0];
+      const what = it.goLive && a.customer ? `The ${a.customer} go-live` : it.id;
+      return `${what} is held up by ${b.id} (${b.title}), which blocks ${it.id}. ${b.assignee} owns it`
+        + (b.ownerOverloaded ? ` and is overloaded at ${b.ownerLoadPct}% of capacity.` : '.');
+    }
+    case 'workload': {
+      const w = result as ReturnType<ChatTools['workload']>;
+      const over = w.people.filter(p => p.status === 'overloaded').sort((x, y) => y.loadPct - x.loadPct);
+      if (!over.length) return '';
+      return `${and(over.map(p => `${p.name} (${p.loadPct}%)`))} ${over.length === 1 ? 'is' : 'are'} overloaded`
+        + (w.suggestedHandoffs.length ? `; ${w.suggestedHandoffs.length} hand-off${w.suggestedHandoffs.length === 1 ? ' is' : 's are'} suggested.` : '.');
+    }
+    case 'recentChanges': {
+      const c = result as ReturnType<ChatTools['recentChanges']>;
+      return c.length ? `The latest change from email moved ${c[0].item} from ${c[0].from} to ${c[0].to}.` : '';
+    }
+    case 'slaRisk': {
+      const r = result as ReturnType<ChatTools['slaRisk']>;
+      if (!r.total) return `Nothing${a.team ? ` in ${a.team}` : ''} breaches or is due within 24 h.`;
+      const first = r.items[0];
+      return `${r.total} item${r.total === 1 ? '' : 's'}${a.team ? ` in ${a.team}` : ''} breach or are due within 24 h${r.breached ? `, ${r.breached} already breached` : ''}. `
+        + `The ${r.breached ? 'most overdue' : 'first due'} is ${first.id} (${first.priority.split(' ')[0]}, SLA ${first.slaDue}).`;
+    }
+    case 'getItem': {
+      if (Array.isArray(result) || 'error' in (result as object)) break;
+      const d = result as Exclude<ReturnType<ChatTools['getItem']>, { error: string }>;
+      const f = d.scoreFactors?.[0]?.match(/^([+-]?\d+) ([^:]+)/);
+      return f ? `${d.id} is ${d.priority}. Biggest factor: ${f[2]} (${f[1]} points).` : '';
+    }
+  }
+  const r = result as ReturnType<ChatTools['searchItems']>;
+  if (!Array.isArray(r) || !r.length) return '';
+  const top = r[0];
+  if (a.assignee) return `${a.assignee.split(' ')[0]} should start with ${top.id}, ${top.title} (${top.priority.split(' ')[0]}, SLA ${top.slaDue}).`;
+  if (a.customer || a.team) return `The most urgent open item for ${a.customer || a.team} is ${top.id}, ${top.title} (${top.priority.split(' ')[0]}).`;
+  if (a.band) return `The most urgent open ${a.band} item is ${top.id}, ${top.title}.`;
+  return '';
+}
+
+/** The facts for a tool result: the list or detail the conclusion is drawn from. */
+function facts(t: ChatTools, q: ToolQuery, result: unknown): string {
   const a = { ...EMPTY_ARGS, ...q.args };
   switch (q.tool) {
     case 'blockers': {
@@ -201,7 +259,7 @@ export function renderResult(t: ChatTools, q: ToolQuery, result: unknown): strin
     }
     case 'slaRisk': {
       const r = result as ReturnType<ChatTools['slaRisk']>;
-      return r.length ? `${r.length} items breach or are due within 24 h${a.team ? ` in ${a.team}` : ''}:\n` + r.slice(0, 8).map(line).join('\n') : 'Nothing breaches or is due within 24 h.';
+      return r.total ? `By due time${r.total > 8 ? ' (first 8)' : ''}:\n` + r.items.slice(0, 8).map(line).join('\n') : '';
     }
     case 'getItem': {
       if (Array.isArray(result)) break;
@@ -218,43 +276,23 @@ export function renderResult(t: ChatTools, q: ToolQuery, result: unknown): strin
   return r.length ? `Top ${r.length} open items for ${who || 'all teams'}, by priority:\n${r.map(line).join('\n')}` : `No open items for ${who || 'that question'}.`;
 }
 
-/** Accepts a model's lead sentence only if every ticket id, name and number in it appears in the facts. */
-export function checkLead(lead: string, facts: string, t: ChatTools): string {
-  const flat = lead.replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim();
-  const s = (flat.match(/[^.!?]+[.!?]+/g) ?? [flat]).slice(0, 2).join('').trim().slice(0, 300);
-  if (!s) return '';
-  const F = facts.toUpperCase();
-  if ([...s.matchAll(ID_EXACT)].some(m => !F.includes(m[0]))) return '';
-  if (t.people().some(p => t.mentions(s, p.name, 'person') && !t.mentions(facts, p.name, 'person'))) return '';
-  if (t.customers().some(c => t.mentions(s, c.name, 'customer') && !t.mentions(facts, c.name, 'customer'))) return '';
-  const nums = new Set(facts.match(/\d+(?:\.\d+)?/g) ?? []);
-  if ((s.match(/\d+(?:\.\d+)?/g) ?? []).some(n => !nums.has(n))) return '';
-  return s;
-}
-
-/** The two generations a chat model provides; LocalModels and ServerModels implement them. */
+/** What a chat model provides: understanding the question. LocalModels and ServerModels implement it. */
 export interface ChatModel {
   name: string;
   pickTool(system: string, user: string): Promise<string>;
-  write(system: string, user: string): Promise<string>;
 }
 
 export async function answerWithModel(question: string, history: ChatTurn[], s: Snapshot, m: ChatModel): Promise<ChatAnswer> {
   const t0 = performance.now();
   const t = new ChatTools(s);
   const ctx = history.slice(-4).map(h => `${h.role}: ${h.text}`).join('\n');
-  let q: ToolQuery, modelRan = false;
+  let q: ToolQuery, engine = m.name;
   try {
     const raw = await m.pickTool(toolPickerPrompt(s), ctx ? `Conversation so far:\n${ctx}\n\nNew question: ${question}` : question);
-    modelRan = true;
     q = groundQuery(t, parseModelJson<ToolQuery>(raw), question, history);
-  } catch { q = routeQuestion(question, t); }
-  const facts = renderResult(t, q, runToolQuery(t, q));
-  let lead = '';
-  try { lead = checkLead(await m.write(leadPrompt(s), `Question: ${question}\n\nFacts:\n${facts}`), facts, t); modelRan = true; }
-  catch { /* the facts alone still answer the question */ }
-  const text = lead ? `${lead}\n\n${facts}` : facts;
-  return { text, refs: t.refsIn(text).slice(0, 12), engine: modelRan ? m.name : `Rule engine (${m.name} unavailable)`, toolCalls: [callLabel(q)], latencyMs: Math.round(performance.now() - t0) };
+  } catch { q = routeQuestion(question, t); engine = `Rule engine (fallback from ${m.name})`; }
+  const text = renderResult(t, q, runToolQuery(t, q));
+  return { text, refs: t.refsIn(text).slice(0, 12), engine, toolCalls: [callLabel(q)], latencyMs: Math.round(performance.now() - t0) };
 }
 
 export function answerWithoutModel(question: string, s: Snapshot): ChatAnswer {

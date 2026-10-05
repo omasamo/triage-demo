@@ -1,6 +1,5 @@
 // Tool-first chat for small models: the model only chooses one read-only query (constrained JSON),
-// the app runs it and writes the facts itself, and the model adds a one- or two-sentence answer on
-// top that is checked against those facts (see answerWithModel in ../chat.ts).
+// and the app runs it and writes the answer from the data (see answerWithModel in ../chat.ts).
 import type { Snapshot } from '../engine.ts';
 import type { ChatTools } from '../chat.ts';
 
@@ -45,12 +44,6 @@ Examples:
 "Who is overloaded right now?" -> {"tool":"workload","args":{"id":"","text":"","customer":"","team":"","assignee":"","band":""}}
 "Is anyone in Platform Ops overloaded?" -> {"tool":"workload","args":{"id":"","text":"","customer":"","team":"Platform Ops","assignee":"","band":""}}
 "What should Marek work on first?" -> {"tool":"searchItems","args":{"id":"","text":"","customer":"","team":"","assignee":"Marek Horvath","band":""}}`;
-}
-
-export function leadPrompt(s: Snapshot) {
-  return `You are the assistant in a support triage tool. It is ${s.now}. The app has looked up the facts below and shows them under your answer.
-Write ONE or TWO short sentences that answer the manager's question from these facts: the conclusion first, then the most important reason.
-Use only names, ticket ids and numbers that appear in the facts, copied exactly. Do not list every item. Plain text, no markdown.`;
 }
 
 export function runToolQuery(t: ChatTools, q: ToolQuery): unknown {

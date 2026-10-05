@@ -97,17 +97,21 @@ test('chat keeps model arguments only when the question names them', async () =>
   assert.equal(m.args?.text, '');
 });
 
-test('chat drops a model sentence that cites a ticket id or person not in the data', async () => {
+test('chat answers open with a conclusion computed from the data, whatever the model picked', async () => {
   const { answerWithModel } = await import('../src/core/chat.ts');
   const snap = (await fresh()).snapshot();
-  const pick = async () => '{"tool":"searchItems","args":{"id":"","text":"","customer":"","team":"","assignee":"Marek Horvath","band":""}}';
-  const bad = await answerWithModel('What should Marek work on first?', [], snap, { name: 'stub', pickTool: pick, write: async () => 'Marek should start with 1-ABC123, then 1-DEF456.' });
-  assert.doesNotMatch(bad.text, /1-ABC123|1-DEF456/);
-  assert.match(bad.text, /^Top \d open items for Marek Horvath/);
-  const first = bad.text.match(/• (\S+)/)![1];
-  const good = await answerWithModel('What should Marek work on first?', [], snap, { name: 'stub', pickTool: pick, write: async () => `Marek should start with ${first}, his highest-priority item.` });
-  assert.ok(good.text.startsWith(`Marek should start with ${first}`));
-  assert.equal(good.engine, 'stub');
+  const stub = (json: string) => ({ name: 'stub', pickTool: async () => json });
+  const marek = await answerWithModel('What should Marek work on first?', [], snap,
+    stub('{"tool":"searchItems","args":{"id":"","text":"work first","customer":"","team":"","assignee":"Marek Horvath","band":""}}'));
+  const first = marek.text.match(/• (\S+)/)![1];
+  assert.ok(marek.text.startsWith(`Marek should start with ${first},`), marek.text);
+  assert.equal(marek.engine, 'stub');
+  const over = await answerWithModel('Who is overloaded right now?', [], snap,
+    stub('{"tool":"workload","args":{"id":"","text":"","customer":"","team":"Platform Ops","assignee":"","band":""}}'));
+  assert.match(over.text, /^Aisha Rahman \(\d+%\), Daniel Okafor \(\d+%\) and Marek Horvath \(\d+%\) are overloaded/);
+  const acme = await answerWithModel('What is blocking the Acme go-live?', [], snap, stub('not json'));
+  assert.match(acme.text, /^The Acme Logistics go-live is held up by OPS-1100/);
+  assert.match(acme.engine, /^Rule engine \(fallback/);
 });
 
 test('rule safety net quarantines known injections and drops ticket ids the email never mentions', async () => {
@@ -139,4 +143,19 @@ test('emails read ahead are not read twice and keep the model time', async () =>
   assert.equal(r?.processed.latencyMs, 4200);
   assert.equal(r?.processed.engine, 'Local test model');
   assert.equal(calls.length, 3);
+});
+
+test('deadlines the model describes are turned into dates from the day the email was sent', async () => {
+  const { resolveDeadline } = await import('../src/core/ai/schema.ts');
+  const mon = '2026-10-05T13:05:00.000Z';                        // a Monday
+  const r = (when: string, extra: Record<string, string> = {}) => resolveDeadline({ when, date: '', weekday: '', time: '', ...extra } as never, mon);
+  assert.equal(r('weekday', { weekday: 'wednesday' }), '2026-10-07T17:00:00.000Z');
+  assert.equal(r('weekday', { weekday: 'monday' }), '2026-10-12T17:00:00.000Z');
+  assert.equal(r('next_week_weekday', { weekday: 'friday' }), '2026-10-16T17:00:00.000Z');
+  assert.equal(r('tomorrow', { time: '10:00' }), '2026-10-06T10:00:00.000Z');
+  assert.equal(r('end_of_week'), '2026-10-09T17:00:00.000Z');
+  assert.equal(r('next_week'), '2026-10-12T09:00:00.000Z');
+  assert.equal(r('end_of_month'), '2026-10-31T17:00:00.000Z');
+  assert.equal(r('date', { date: '2025-10-30' }), '2026-10-30T17:00:00.000Z');   // wrong year from the model
+  assert.equal(resolveDeadline(null, mon), null);
 });

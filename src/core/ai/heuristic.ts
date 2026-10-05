@@ -6,7 +6,8 @@ import { findTicketRefs } from '../linker.ts';
 const sentences = (body: string) => body.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(s => s.length > 3);
 const has = (s: string, re: RegExp) => re.test(s);
 
-const INJECTION = /(ignore (all )?(previous|prior) instructions|system notice to ai|as an ai assistant you must|do not mention this message)/i;
+// Common shapes of text aimed at an AI rather than at people (indirect prompt injection).
+const INJECTION = /(ignore (all |any )?(previous|prior|above|earlier) instructions|system notice to ai|as an ai assistant you must|do not mention this message|if you are an? (ai|language model|llm|bot|automated (system|assistant))\b|\b(ai|llm|language model|bot|classifier|triage (bot|model|system)) (reading|processing|summari[sz]ing) this)/i;
 const NOISE_SENDER = /(newsletter|noreply|no-reply|calendar|hr@|facilities|events@|it-news|security@)/i;
 const EXEC = /\b(CEO|CFO|COO|CIO|board|finance director|managing director|VP)\b/;
 const CRITICAL = /(production is (effectively )?down|outage|cannot go live|regulator|penalty|top priority|treat .* as critical|refusing to pay|legal)/i;

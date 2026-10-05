@@ -96,12 +96,16 @@ function metrics(rows: Row[]) {
   };
 }
 
+// Hold-out A was written with the first version and has been looked at while improving prompts; hold-out B was
+// written later and never used for tuning, so B is the honest number for unseen mail.
 const holdout = JSON.parse(readFileSync('data/holdout.json', 'utf8')) as { emails: Email[]; truth: EmailTruth[] };
+const holdoutB = JSON.parse(readFileSync('data/holdout-b.json', 'utf8')) as { emails: Email[]; truth: EmailTruth[] };
 const t0 = performance.now();
 const synthRows = await run(sample, truth, 'synthetic');
-const holdRows = await run(holdout.emails, new Map(holdout.truth.map(t => [t.emailId, t])), 'hold-out');
+const holdRows = await run(holdout.emails, new Map(holdout.truth.map(t => [t.emailId, t])), 'hold-out A');
+const holdBRows = await run(holdoutB.emails, new Map(holdoutB.truth.map(t => [t.emailId, t])), 'hold-out B');
 const totalMs = performance.now() - t0;
-const allRows = [...synthRows, ...holdRows];
+const allRows = [...synthRows, ...holdRows, ...holdBRows];
 const tokens = allRows.reduce((a, r) => a + r.tokens, 0);
 const genMs = allRows.reduce((a, r) => a + r.ms, 0);
 const promptMs = allRows.reduce((a, r) => a + r.promptMs, 0);
@@ -128,6 +132,7 @@ const result = {
   schemaFailures: failures.length,
   synthetic: metrics(synthRows),
   holdout: metrics(holdRows),
+  holdoutB: metrics(holdBRows),
   speed: {
     secondsPerEmail: Math.round(genMs / allRows.length / 10) / 100,
     // Reading the prompt (time to first token) versus writing the answer, per email.
@@ -147,12 +152,14 @@ const row = (m: ReturnType<typeof metrics>) => ({
   'Email→ticket linking %': m.linking.accuracy, 'Deadlines found %': m.deadline.found,
   'De-escalations found %': m.deescalation.found, 'Prompt injections blocked %': m.injection.blocked,
 });
-console.table({ [`Synthetic set (${result.synthetic.emails})`]: row(result.synthetic), [`Hold-out set (${result.holdout.emails})`]: row(result.holdout) });
+console.table({ [`Synthetic set (${result.synthetic.emails})`]: row(result.synthetic), [`Hold-out A (${result.holdout.emails})`]: row(result.holdout),
+  [`Hold-out B, unseen (${result.holdoutB.emails})`]: row(result.holdoutB) });
 if (failures.length) console.log(`Model output could not be parsed for ${failures.length} emails (rule engine used for those).`);
 console.log(`Speed: ${result.speed.secondsPerEmail} s per email${result.speed.promptSecondsPerEmail !== undefined ? ` (${result.speed.promptSecondsPerEmail} s reading the prompt, then ${result.speed.tokensPerEmail} tokens at ${result.speed.tokensPerSecond} tokens/s)` : ''}`);
 if (info) console.log(`Runtime: ${info.gpu}, ${info.threads ?? '?'} threads, ${info.hybridOrRecurrent ? 'hybrid/recurrent model (prompt prefix needs checkpoints to be reused)' : 'attention model (prompt prefix is reused)'}`);
 for (const c of chat) console.log(`Chat "${c.q}" → ${(c.ms / 1000).toFixed(1)} s via ${c.tool}\n   ${c.answer.replace(/\n/g, ' ')}`);
-if (result.holdout.mistakes.length) console.log(`\nHold-out mistakes:\n${result.holdout.mistakes.map(m => `  ${m}`).join('\n')}`);
+if (result.holdout.mistakes.length) console.log(`\nHold-out A mistakes:\n${result.holdout.mistakes.map(m => `  ${m}`).join('\n')}`);
+if (result.holdoutB.mistakes.length) console.log(`\nHold-out B mistakes:\n${result.holdoutB.mistakes.map(m => `  ${m}`).join('\n')}`);
 mkdirSync('bench-results', { recursive: true });
 const file = `bench-results/${(process.env.BENCH_NAME ?? os.hostname()).replace(/[^a-z0-9-]+/gi, '-')}.json`;
 writeFileSync(file, JSON.stringify(result, null, 2));
@@ -162,7 +169,8 @@ writeFileSync(file.replace(/\.json$/, '.md'), [
   '| Set | Escalation precision % | Escalation recall % | Linking % | Deadlines % | De-escalations % | Injections blocked % |',
   '|---|---|---|---|---|---|---|',
   `| Synthetic (${result.synthetic.emails}) | ${md(result.synthetic)} |`,
-  `| Hold-out (${result.holdout.emails}) | ${md(result.holdout)} |`, '',
+  `| Hold-out A (${result.holdout.emails}) | ${md(result.holdout)} |`,
+  `| Hold-out B, unseen (${result.holdoutB.emails}) | ${md(result.holdoutB)} |`, '',
   `Speed: **${result.speed.secondsPerEmail} s per email**${result.speed.promptSecondsPerEmail !== undefined ? ` (${result.speed.promptSecondsPerEmail} s reading the prompt, then ${result.speed.tokensPerEmail} tokens at ${result.speed.tokensPerSecond} tokens/s)` : ''}.`,
   ...chat.map(c => `- Chat "${c.q}": ${(c.ms / 1000).toFixed(1)} s via \`${c.tool}\`. ${c.answer.replace(/\n/g, ' ')}`),
 ].join('\n') + '\n');
